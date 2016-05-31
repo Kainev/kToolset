@@ -3,16 +3,49 @@ from functools import partial
 
 # Maya Imports
 from maya import OpenMayaUI as OpenMayaUI
-from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
-from maya.app.general.mayaMixin import MayaQDockWidget
 from maya.OpenMayaUI import MQtUtil
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin, MayaQDockWidget
+
 
 # PySide imports
-from shiboken import wrapInstance
 import PySide.QtGui as qg
 import PySide.QtCore as qc
+from shiboken import wrapInstance
+
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+# INITIALIZE FUNCTION
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+kAuto_rig_ui = None
+app_running = False
 
 
+def initialize():
+    """
+    Initializes the UI (which in turns creates an instance of the kAutoRigger Tool)
+    and calls it's run function to show the window. If an instance is already running
+    then this function has no effect.
+    """
+    global app_running
+    global kAuto_rig_ui
+
+    if not app_running:
+        app_running = True
+        kAuto_rig_ui = None
+
+        if kAuto_rig_ui is None:
+            kAuto_rig_ui = KAutoRiggerUI()
+            kAuto_rig_ui.run()
+    else:
+        kAuto_rig_ui.run()
+
+
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
+# MAIN UI
+# -------------------------------------------------------------------------------------------------------------------- #
+# -------------------------------------------------------------------------------------------------------------------- #
 class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
     """
     Main UI for the kAutoRigger. Handles all aspects of the UI and the interfacing between this UI
@@ -21,48 +54,51 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
     TOOL_NAME = 'kAutoRigger'
 
-    def __init__(self, parent=None):
+    def __init__(self):
         """
         Sets the KAutoRiggerUI docks main window preferences, establishes the layout and initializes all
         other windows/docks.
         """
         self.delete_instances()
-        super(self.__class__, self).__init__(parent=parent)
-        
-        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
-        self.maya_main_window = wrapInstance(long(maya_main_window_ptr), qg.QMainWindow)
-        self.setObjectName(self.__class__.TOOL_NAME)  # Make this unique enough if using it to clear previous instance!
+        super(self.__class__, self).__init__(parent=self.get_maya_window())
 
         # Window settings
+        self.setObjectName(self.__class__.TOOL_NAME)
         self.setWindowFlags(qc.Qt.WindowStaysOnTopHint)
+        self.resize(600, 400)
         self.setWindowTitle('kAutoRigger')
         # self.setStyleSheet(ui_generic.getMainStyleSheet()) ## GET MAIN STYLE SHEET
         self.statusBar().showMessage("Ready")
 
-        # Menu Bar
-        menu_bar = self.menuBar()
-        # Establish menus
-        self.file_menu = menu_bar.addMenu('&File')
-        self.edit_menu = menu_bar.addMenu('&Edit')
-        self.windows_menu = menu_bar.addMenu('&Windows')
-        self.help_menu = menu_bar.addMenu('&Help')
-        # Make menus tear-able
-        self.file_menu.setTearOffEnabled(True)
-        self.edit_menu.setTearOffEnabled(True)
-        self.windows_menu.setTearOffEnabled(True)
-        self.help_menu.setTearOffEnabled(True)
-
-        self._add_actions()
+        # Initialize the main window's menu bar
+        self._init_menu_bar()
 
     # ---------------------------------------------------------------------------------------------------------------- #
 
-    def _add_actions(self):
+    def _init_menu_bar(self):
         """
-        Adds the actions ('options') to the main windows menu bar and sets their 'triggered' signal connection
-        to the corresponding function (i.e. pressing Save Rig triggers the rig save function).
+        Creates the main window's menu bar, adds the actions ('options') and sets their 'triggered' signal
+        connections to the corresponding function (i.e. pressing Save Rig triggers the rig save function).
         """
+        # ----------------------------------------------------------------------------#
+        # Menu Bar -------------------------------------------------------------------#
+        menu_bar = self.menuBar()
+        # Establish menus
+        file_menu = menu_bar.addMenu('&File')
+        edit_menu = menu_bar.addMenu('&Edit')
+        windows_menu = menu_bar.addMenu('&Windows')
+        help_menu = menu_bar.addMenu('&Help')
+        # Make menus tear-able
+        file_menu.setTearOffEnabled(True)
+        edit_menu.setTearOffEnabled(True)
+        windows_menu.setTearOffEnabled(True)
+        help_menu.setTearOffEnabled(True)
+
+        # ---------------------------------------------------------------------------#
+        # ACTIONS -------------------------------------------------------------------#
+
         # FILE MENU -----------------------------------------------------------------#
-        self.file_menu.setFixedWidth(215)
+        file_menu.setFixedWidth(215)
 
         # Actions
         file_action_new_rig = qg.QAction('New Rig', self)
@@ -73,38 +109,77 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         file_action_import_preset = qg.QAction('Import Preset', self)
         file_action_exit = qg.QAction('Exit', self)
 
+        # Functionality
+        file_action_new_rig.triggered.connect(self.display_in_dev_message)
+        file_action_open_rig.triggered.connect(self.display_in_dev_message)
+        file_action_save_rig.triggered.connect(self.display_in_dev_message)
+        file_action_save_rig_as.triggered.connect(self.display_in_dev_message)
+        file_action_save_preset.triggered.connect(self.display_in_dev_message)
+        file_action_import_preset.triggered.connect(self.display_in_dev_message)
+        file_action_exit.triggered.connect(self.exit)
+
         # Add Actions
-        self.file_menu.addAction(file_action_new_rig)
-        self.file_menu.addAction(file_action_open_rig)
-        file_sep01 = self.file_menu.addSeparator()
+        file_menu.addAction(file_action_new_rig)
+        file_menu.addAction(file_action_open_rig)
+        file_sep01 = file_menu.addSeparator()
         file_sep01.setText('Save')
-        self.file_menu.addAction(file_action_save_rig)
-        self.file_menu.addAction(file_action_save_rig_as)
-        file_sep02 = self.file_menu.addSeparator()
+        file_menu.addAction(file_action_save_rig)
+        file_menu.addAction(file_action_save_rig_as)
+        file_sep02 = file_menu.addSeparator()
         file_sep02.setText('Preset')
-        self.file_menu.addAction(file_action_save_preset)
-        self.file_menu.addAction(file_action_import_preset)
-        self.file_menu.addSeparator()
-        self.file_menu.addAction(file_action_exit)
+        file_menu.addAction(file_action_save_preset)
+        file_menu.addAction(file_action_import_preset)
+        file_menu.addSeparator()
+        file_menu.addAction(file_action_exit)
 
         # WINDOWS MENU --------------------------------------------------------------#
-        self.windows_menu.setFixedWidth(215)
+        windows_menu.setFixedWidth(215)
 
         # Actions
-        win_action_module_outliner = qg.QAction('Module Outliner', self, triggered=self.test)
+        win_action_module_outliner = qg.QAction('Module Outliner', self)
         win_action_avail_modules = qg.QAction('Available Modules', self)
-        win_action_parent_editor = qg.QAction('Module Parent Editor', self)
-        win_action_placement_systems = qg.QAction('Module Placement Editor', self)
-        win_action_space_editor = qg.QAction('Module Space Editor', self)
+        win_action_parent_editor = qg.QAction('Parent Editor', self)
+        win_action_placement_systems = qg.QAction('Placement Editor', self)
+        win_action_space_editor = qg.QAction('Space Editor', self)
+
+        # Functionality
+        win_action_module_outliner.triggered.connect(self.display_in_dev_message)
+        win_action_avail_modules.triggered.connect(self.display_in_dev_message)
+        win_action_parent_editor.triggered.connect(self.display_in_dev_message)
+        win_action_placement_systems.triggered.connect(self.display_in_dev_message)
+        win_action_space_editor.triggered.connect(self.display_in_dev_message)
 
         # Add Actions
-        self.windows_menu.addAction(win_action_module_outliner)
-        self.windows_menu.addAction(win_action_avail_modules)
-        win_sep01 = self.windows_menu.addSeparator()
+        windows_menu.addAction(win_action_module_outliner)
+        windows_menu.addAction(win_action_avail_modules)
+        win_sep01 = windows_menu.addSeparator()
         win_sep01.setText('Editors')
-        self.windows_menu.addAction(win_action_parent_editor)
-        self.windows_menu.addAction(win_action_placement_systems)
-        self.windows_menu.addAction(win_action_space_editor)
+        windows_menu.addAction(win_action_parent_editor)
+        windows_menu.addAction(win_action_placement_systems)
+        windows_menu.addAction(win_action_space_editor)
+
+        # HELP MENU --------------------------------------------------------------#
+        help_menu.setFixedWidth(215)
+
+        # Actions
+        help_action_about = qg.QAction('About', self)
+        help_action_update = qg.QAction('Check for Updates..', self)
+        help_action_docs = qg.QAction('Documentation', self)
+        help_action_website = qg.QAction('Developer Website', self)
+
+        # Functionality
+        help_action_about.triggered.connect(self.display_in_dev_message)
+        help_action_update.triggered.connect(self.display_in_dev_message)
+        help_action_docs.triggered.connect(self.display_in_dev_message)
+        help_action_website.triggered.connect(self.display_in_dev_message)
+
+        # Add Actions
+        help_menu.addAction(help_action_about)
+        help_menu.addSeparator()
+        help_menu.addAction(help_action_update)
+        help_menu.addSeparator()
+        help_menu.addAction(help_action_docs)
+        help_menu.addAction(help_action_website)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -112,26 +187,44 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
 
+    def run(self):
+        """
+        Shows the UI
+        """
+        self.show(dockable=True)
+
+    def exit(self):
+        """
+        Runs the delete_instances function and sets the global variable app_running to False
+
+        This method completely deletes the UI and kAutoRigger Tool. Any unsaved progress is lost.
+        """
+
+        exit_message = "Unsaved progress will be lost.. continue?"
+        user_reply = qg.QMessageBox.question(self, 'Exit kAutoRigger', exit_message,
+                                             qg.QMessageBox.Yes, qg.QMessageBox.No)
+
+        if user_reply == qg.QMessageBox.Yes:
+            global app_running
+            app_running = False
+            self.delete_instances()
+        else:
+            pass
+
     def dockCloseEventTriggered(self):
         """
-        Overrides default dockCloseEventTriggered method to run custom delete function
+        Overrides default dockCloseEventTriggered to have no effect. This results in the UI window
+        simply being hidden but not closed.
 
-        NOTES: Potentially change this function to only hide the UI instead of deleting it,
-        as the autoRig tool is created from this instance of the UI, if the window is closed
-        all auto rigging progress will be gone.
+        The user must press the 'Exit' button from the 'File' menu to completely quit the application.
         """
-        global ui_open
-        ui_open = False
-        self.delete_instances()
+        pass
 
     def delete_instances(self):
         """
         Deletes all instances of the UI dock
         """
-        # Get Mayas window wrapped as a widget
-        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
-        maya_main_window = wrapInstance(long(maya_main_window_ptr),
-                                        qg.QMainWindow)
+        maya_main_window = self.get_maya_window()
 
         # Search all children of the main window to find currently open instances of this UI
         for obj in maya_main_window.children():
@@ -141,35 +234,25 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
                     obj.setParent(None)
                     obj.deleteLater()
 
-    def run(self):
+    @staticmethod
+    def get_maya_window():
+        # Get Mayas window wrapped as a widget
+        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
+        maya_main_window = wrapInstance(long(maya_main_window_ptr),
+                                        qg.QMainWindow)
+
+        return maya_main_window
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # MISC FUNCTIONS
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+
+    def display_in_dev_message(self):
         """
-        Shows the UI
+        Displays a message box informing the user that the feature they have just attempted
+        to use is unavailable as it is still in development.
         """
-        self.show(dockable=True)
-
-    
-# -------------------------------------------------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------------------------------------------------- #
-# CREATE FUNCTION
-# -------------------------------------------------------------------------------------------------------------------- #
-# -------------------------------------------------------------------------------------------------------------------- #
-
-kAuto_rig_ui = None
-ui_open = False
-
-
-def create():
-    """
-    Initializes the UI (which in turns creates an instance of the kAutoRigger Tool)
-    and calls it's run function to show the window. If an instance is already running
-    then this function has no effect.
-    """
-    global ui_open
-
-    if not ui_open:
-        ui_open = True
-
-        global kAuto_rig_ui
-        if kAuto_rig_ui is None:
-            kAuto_rig_ui = KAutoRiggerUI()
-        kAuto_rig_ui.run()
+        message = "Feature Unavailable: In Development"
+        qg.QMessageBox.question(self, 'Development', message, qg.QMessageBox.Ok)
