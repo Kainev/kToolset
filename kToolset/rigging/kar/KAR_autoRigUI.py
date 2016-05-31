@@ -82,7 +82,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         # ----------------------------------------------------------------------------#
         # Menu Bar -------------------------------------------------------------------#
         menu_bar = self.menuBar()
-        # Establish menus
+        # Create menus
         file_menu = menu_bar.addMenu('&File')
         edit_menu = menu_bar.addMenu('&Edit')
         windows_menu = menu_bar.addMenu('&Windows')
@@ -98,7 +98,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
         # FILE MENU -----------------------------------------------------------------#
         file_menu.setFixedWidth(215)
-
         # Actions
         file_action_new_rig = qg.QAction('New Rig', self)
         file_action_open_rig = qg.QAction('Open Rig', self)
@@ -107,7 +106,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         file_action_save_preset = qg.QAction('Save Preset', self)
         file_action_import_preset = qg.QAction('Import Preset', self)
         file_action_exit = qg.QAction('Exit', self)
-
         # Functionality
         file_action_new_rig.triggered.connect(self.display_in_dev_message)
         file_action_open_rig.triggered.connect(self.display_in_dev_message)
@@ -116,7 +114,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         file_action_save_preset.triggered.connect(self.display_in_dev_message)
         file_action_import_preset.triggered.connect(self.display_in_dev_message)
         file_action_exit.triggered.connect(self.exit)
-
         # Add Actions
         file_menu.addAction(file_action_new_rig)
         file_menu.addAction(file_action_open_rig)
@@ -133,21 +130,18 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
         # WINDOWS MENU --------------------------------------------------------------#
         windows_menu.setFixedWidth(215)
-
         # Actions
         win_action_module_outliner = qg.QAction('Module Outliner', self)
         win_action_avail_modules = qg.QAction('Available Modules', self)
         win_action_parent_editor = qg.QAction('Parent Editor', self)
         win_action_placement_systems = qg.QAction('Placement Editor', self)
         win_action_space_editor = qg.QAction('Space Editor', self)
-
         # Functionality
         win_action_module_outliner.triggered.connect(self.display_in_dev_message)
         win_action_avail_modules.triggered.connect(self.display_in_dev_message)
         win_action_parent_editor.triggered.connect(self.display_in_dev_message)
         win_action_placement_systems.triggered.connect(self.display_in_dev_message)
         win_action_space_editor.triggered.connect(self.display_in_dev_message)
-
         # Add Actions
         windows_menu.addAction(win_action_module_outliner)
         windows_menu.addAction(win_action_avail_modules)
@@ -159,19 +153,16 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
         # HELP MENU --------------------------------------------------------------#
         help_menu.setFixedWidth(215)
-
         # Actions
         help_action_about = qg.QAction('About', self)
         help_action_update = qg.QAction('Check for Updates..', self)
         help_action_docs = qg.QAction('Documentation', self)
         help_action_website = qg.QAction('Developer Website', self)
-
         # Functionality
         help_action_about.triggered.connect(self.display_in_dev_message)
         help_action_update.triggered.connect(self.display_in_dev_message)
         help_action_docs.triggered.connect(self.display_in_dev_message)
         help_action_website.triggered.connect(self.display_in_dev_message)
-
         # Add Actions
         help_menu.addAction(help_action_about)
         help_menu.addSeparator()
@@ -185,7 +176,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
     # OPEN/CLOSE FUNCTIONS FOR UI
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
-
     def run(self):
         """
         Shows the UI
@@ -247,7 +237,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
     # MISC FUNCTIONS
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
-
     def display_in_dev_message(self):
         """
         Displays a message box informing the user that the feature they have just attempted
