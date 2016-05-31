@@ -1,1 +1,3 @@
-pass
+
+class AutoRigger(object):
+    pass
