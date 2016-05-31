@@ -1,0 +1,1 @@
+kar.ui.widgets stores all custom widgets that are used to create a larger widget/dialog/dock

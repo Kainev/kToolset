@@ -1,0 +1,1 @@
+kar.ui stores all docks, dialogs and major ui elements (i.e a widget that holds all content for a tab in the main ui)
