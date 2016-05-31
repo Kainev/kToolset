@@ -6,7 +6,6 @@ from maya import OpenMayaUI as OpenMayaUI
 from maya.OpenMayaUI import MQtUtil
 from maya.app.general.mayaMixin import MayaQWidgetDockableMixin, MayaQDockWidget
 
-
 # PySide imports
 import PySide.QtGui as qg
 import PySide.QtCore as qc
@@ -24,7 +23,7 @@ app_running = False
 def initialize():
     """
     Initializes the UI (which in turns creates an instance of the kAutoRigger Tool)
-    and calls it's run function to show the window. If an instance is already running
+    and calls its run function to show the window. If an instance is already running
     then this function has no effect.
     """
     global app_running
