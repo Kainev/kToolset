@@ -13,7 +13,7 @@ class KAutoRigger(object):
     def build_placement_systems(self, system = None, all = False):
         """
         Creates an instance of each modules placement system class and runs the function
-        to build the base system (i.e geo, joints, controls)
+        to build the base system (i.e geo, joints, controls).
 
         :param system: UUID of specific module to build
         :param all: Boolean: If true, builds ALL placement systems for all initialized modules
@@ -23,7 +23,7 @@ class KAutoRigger(object):
 
     def assemble_placement_systems(self):
         """
-        Parents each placement system in hierarchy as defined by the user
+        Parents each placement system in hierarchy as defined by the user.
         :return:
         """
         pass
