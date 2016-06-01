@@ -1,0 +1,38 @@
+QPushButton#tab[selected = 'true']
+{
+    background-color : rgb(103, 168, 234);
+    border : none;
+    height : 25px;
+    width : 85;
+    padding-left : 8px;
+    padding-right : 8px;
+}
+
+QPushButton#tab[selected = 'false']
+{
+    background-color : rgb(50, 50, 50);
+    border : none;
+    height : 25px;
+    width : 85;
+    padding-left : 8px;
+    padding-right : 8px;
+}
+
+QPushButton:hover#tab[selected = 'false']
+{
+    background-color : rgb(60, 60, 60);
+    padding-left : 8px;
+    pading-right : 8px;
+}
+
+QPushButton:hover#tab[selected = 'true']
+{
+    background-color : rgb(133, 198, 255);
+    padding-left : 8px;
+    pading-right : 8px;
+}
+
+QPushButton:pressed#tab[selected = 'false']
+{
+    background-color : rgb(40, 40, 40);
+}

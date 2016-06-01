@@ -1,9 +1,15 @@
+# Python Imports
+from functools import partial
+
 # Maya Imports
 import maya.cmds as cmds
 
 # PySide Imports
 import PySide.QtCore as qc
 import PySide.QtGui as qg
+
+# KAR Imports
+from kToolset.kToolset.rigging.kar.utils import KAR_uiUtils as kuiUtils; reload(kuiUtils)
 
 class TabWidget(qg.QWidget):
     """
@@ -20,8 +26,10 @@ class TabWidget(qg.QWidget):
 
         self._tab_buttons = []
 
+        self.setStyleSheet(kuiUtils.get_style_sheet('stylesheet_tabWidget'))
+        print kuiUtils.get_style_sheet('stylesheet_tabWidget')
         self.setLayout(qg.QVBoxLayout())
-        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setContentsMargins(2, 2, 2, 2)
         self.layout().setSpacing(0)
 
         self.lay_tabs = qg.QHBoxLayout()
@@ -30,36 +38,42 @@ class TabWidget(qg.QWidget):
         self.lay_tabs.setSpacing(2)
         self.layout().addLayout(self.lay_tabs)
 
-        self.lay_content = qg.QStackedLayout()
-        self.lay_content.setContentsMargins(0, 0, 0, 0)
-        self.lay_content.setSpacing(0)
-        self.layout().addLayout(self.lay_content)
+        self.content_frame = qg.QFrame()
+        self.content_frame.setFrameStyle(qg.QFrame.Panel | qg.QFrame.Raised)
+        self.content_frame.setLayout(qg.QStackedLayout())
+        self.content_frame.layout().setContentsMargins(0, 0, 0, 0)
+        self.content_frame.layout().setSpacing(0)
+        self.layout().addWidget(self.content_frame)
 
 
-    def add_tab(self, name, content_widget, selected=False):
+    def add_tab(self, label, content_widget, selected=False):
         """
         Adds a new tab and associates it with the given content_widget
 
-        :param name: String: Text to display on tab button
+        :param label: String: Text to display on tab button
         :param content_widget: QWidget: Widget to display when tab is selected
         :param selected: Boolean: If True, this tab is set to be the selected tab
         :return:
         """
         # Validate parameters
-        if name in self._tab_buttons:
-            cmds.warning("Cannot add tab. Name: '%s' is not unique.." % name)
+        if label in self._tab_buttons:
+            cmds.warning("Cannot add tab. Name: '%s' is not unique.." % label)
             return
 
-        if not isinstance(name, str):
-            cmds.warning("Name: '%s' must be of type: Str" % name)
+        if not isinstance(label, str):
+            cmds.warning("Name: '%s' must be of type: Str" % label)
             return
+
+        if len(self._tab_buttons) > 0:
+            index = len(self._tab_buttons)-1
+        else:
+            index = 0
 
         # Create a new button to use as a tab
-        self._tab_buttons.append(qg.QPushButton(name))
-        # Find the index of the button (it will always be the last element)
-        index = self._tab_buttons.index(qg.QPushButton(name))
+        self._tab_buttons.append(qg.QPushButton(label))
+        self._tab_buttons[index].setObjectName('tab')
         self._tab_buttons[index].setFixedWidth(100)
-        self._tab_buttons[index].clicked.connect(partial(self._tab_selected, index))
+        self._tab_buttons[index].clicked.connect(partial(self._update_selection, index))
 
         if not selected:
             self._tab_buttons[index].setProperty(self.SELECTED, False)
@@ -68,7 +82,7 @@ class TabWidget(qg.QWidget):
             self._update_selection(index)
 
         self.lay_tabs.addWidget(self._tab_buttons[index])
-        self.lay_tabs.addWidget(content_widget)
+        self.content_frame.layout().addWidget(content_widget)
 
     def _update_selection(self, tab_index):
         """
@@ -79,7 +93,7 @@ class TabWidget(qg.QWidget):
         :return:
         """
         try:
-            self.lay_content.setCurrentIndex(tab_index)
+            self.content_frame.layout().setCurrentIndex(tab_index)
         except IndexError:
             cmds.warning("Content Widget at index '%s' does not exist.." % tab_index)
             return
