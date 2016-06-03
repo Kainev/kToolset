@@ -5,6 +5,15 @@ from functools import partial
 import PySide.QtCore as qc
 import PySide.QtGui as qg
 
+
+"""
+NOTES:
+Implement the option to display the widgets parent name on the right side of the list item properly.
+Add variable to turn display of parent name on/off. When on, add parent text width into minimumWidth calculation
+and work out correct x position to draw text. Align parent text right.
+"""
+
+
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 # LIST
@@ -138,10 +147,31 @@ class ListWidget(qg.QWidget):
         if location == 0:
             self.parent_item(dropped_item, target_item)
         if location == 1:
-            if not self.get_children(target_item):
+            # If moving item under an item with children, move and parent it
+            if self.get_children(target_item) != []:
                 self.parent_item(dropped_item, target_item)
+            # If moving item under an item with the no children, only move
             elif target_item.parent == dropped_item.parent:
                 self.move_item_under(dropped_item, target_item)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # List Display
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def set_icon_state(self, state):
+        """
+        Sets the display state of all list items icons.
+
+        0 = No Icon
+        1 = Small Icon (32px)
+        2 = Large Icon (64px)
+
+        :param state: Int: 0 = No Icon, 1 = Small Icon, 2 = Large Icon
+        """
+        if 0 <= state <= 2:
+            for item in self._items:
+                item.set_icon_state(state)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -210,13 +240,13 @@ class _ItemWidget(qg.QWidget):
                 SELECTED: qg.QBrush(qg.QColor(*COLOUR_SELECTED)),
                 SELECTED_HOVER: qg.QBrush(qg.QColor(*COLOUR_HOVER_SELECTED))}
 
-    _pen_clear = qg.QPen(qg.QColor(0, 0, 0, 0), 1, qc.Qt.SolidLine)
-
     def __init__(self, label, icon_pixmap, data, parent=None):
         super(_ItemWidget, self).__init__(parent=parent)
 
         # Text Pen
         self._pen_text = qg.QPen(qg.QColor(250, 252, 255), 1, qc.Qt.SolidLine)
+        self._pen_border = qg.QPen(qg.QColor(0, 0, 0, 0), 1, qc.Qt.SolidLine)
+        self._pen_line = qg.QPen(qg.QColor(*self.COLOUR_HOVER_SELECTED), 1, qc.Qt.SolidLine)
 
         # IDENTIFIER
         self.uuid = uuid.uuid4()
@@ -237,6 +267,8 @@ class _ItemWidget(qg.QWidget):
         self._hover = False
         self._is_down = False
         self._selected = False
+        self._drag_hover_middle = False
+        self._drag_hover_lower = False
 
         self._icon_size = 32
         self.set_icon_state(1)
@@ -271,11 +303,26 @@ class _ItemWidget(qg.QWidget):
                 self.indent_width = 0
 
         super(_ItemWidget, self).update()
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # Painting/Text
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
+    def set_text(self, text):
+        """
+        Sets the list items display text
+
+        :param text: Unicode string to display
+        """
+        if isinstance(text, unicode):
+            self._text = text
+
+            fm = qg.QFontMetrics(qg.QFont())
+            text_width = fm.width(text)
+
+            self.setMinimumWidth(self._icon_size + self.indent_width + text_width + 16)
+
     def set_text_colour(self, rgba):
         """
         Changes the items label colour to RGB or RGBA value.
@@ -288,29 +335,27 @@ class _ItemWidget(qg.QWidget):
         except AttributeError:
             pass
 
-    def set_text(self, text):
+    def set_border_colour(self, rgba):
         """
-        Sets the list items display text
+        Updates the pen colour that draws the widgets line border
 
-        :param text: Unicode string to display
+        :param rgba: Accepts list of RGB or RGBA values from 0-255
         """
-        if isinstance(text, unicode):
-            self._text = text
-            
-            fm = qg.QFontMetrics(qg.QFont())
-            text_width = fm.width(text)
-            
-            self.setMinimumWidth(self._icon_size+self.indent_width+text_width+16)
+        try:
+            self._pen_border = qg.QPen(qg.QColor(*rgba), 1, qc.Qt.SolidLine)
+            self.update()
+        except AttributeError:
+            pass
 
     def set_icon_state(self, state):
         """
-        Sets the icon size given an integer.
+        Sets the display state of icon.
 
         0 = No Icon
         1 = Small Icon (32px)
         2 = Large Icon (64px)
 
-        :param state: Int:
+        :param state: Int: 0 = No Icon, 1 = Small Icon, 2 = Large Icon
         """
         if state is 1:
             self._icon_size = 32
@@ -334,7 +379,7 @@ class _ItemWidget(qg.QWidget):
         width = option.rect.width() - 1
 
         # Set a transparent pen for drawing rectangle (no border)
-        painter.setPen(self._pen_clear)
+        painter.setPen(self._pen_border)
 
         # Set brush
         if not self._selected and not self._is_down:
@@ -371,6 +416,10 @@ class _ItemWidget(qg.QWidget):
             parent_text = 'world'
         painter.drawText(x + self.indent_width + self._icon_size + 80, y, width, height,
                          (qc.Qt.AlignLeft | qc.Qt.AlignVCenter), parent_text)
+
+        if self._drag_hover_lower:
+            painter.setPen(self._pen_line)
+            painter.drawLine(0, height, width, height)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -437,6 +486,11 @@ class _ItemWidget(qg.QWidget):
         """
         event.accept()
 
+    def dragLeaveEvent(self, event):
+        self.set_border_colour([0, 0, 0, 0])
+        self._drag_hover_lower = False
+        self.update()
+
     def dropEvent(self, event):
         """
         Overrides widgets default dropEvent function
@@ -455,9 +509,32 @@ class _ItemWidget(qg.QWidget):
         else:
             self.received_drop.emit([dropped_widget, 1])
 
+        # Clean up
+        self.set_border_colour([0, 0, 0, 0])
+        self._drag_hover_lower = False
+        self.update()
 
         # Ideas:
         # Emit the dropped widget in a signal to the list
+
+    def dragMoveEvent(self, event):
+        """
+        Overrides widgets default dragMoveEvent function
+
+        :param event:
+        """
+        height = self.frameGeometry().height()
+
+        pos_y = event.pos().y()
+        h_section = height * 0.30
+
+        if pos_y < (height - h_section):
+            self.set_border_colour(self.COLOUR_HOVER_SELECTED)
+        else:
+            self._drag_hover_lower = True
+            self.set_border_colour([0, 0, 0, 0])
+
+        self.update()
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
