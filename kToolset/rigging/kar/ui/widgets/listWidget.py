@@ -1,5 +1,6 @@
 # Python Imports
 import uuid
+from functools import partial
 # PySide Imports
 import PySide.QtCore as qc
 import PySide.QtGui as qg
@@ -48,30 +49,129 @@ class ListWidget(qg.QWidget):
 
         self.scroll_area.setWidget(self.list_widget)
 
-    def add_item(self, label, icon_pixmap, data, parent=None):
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # List Item Manipulation Functions
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def add_item(self, label, icon_pixmap, data):
+        """
+        Adds a new item to the list.
+
+        :param label: Text to display on list item
+        :param icon_pixmap: QPixmap to display on the left of text
+        :param data: Arbitrary variable to store any required data, such as an identifier
+        """
         item = _ItemWidget(label, icon_pixmap, data, parent=self)
+        self.list_widget.layout().addWidget(item)
         self._items.append(item)
-        self.list_widget.addWidget(item)
-        item.set_parent(parent)
 
-    # ---------------------------------------------------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------------------------------------------------- #
-    # List Order Functions
-    # ---------------------------------------------------------------------------------------------------------------- #
-    # ---------------------------------------------------------------------------------------------------------------- #
-    def move_item(self, item_id, index):
-        pass
+        # Listen for drop events
+        item.received_drop.connect(partial(self.drop_event, item))
 
-    def get_order(self):
+    def parent_item(self, child_item, parent_item):
         """
-        Returns a list of UUIDs from index 0-n in the current display order, with index 0 being the top most list item
-        and index n being the bottom most list item
+        Sets the parent of a given item and moves that item visually underneath
+        its new parent
         """
-        return [item.uuid for item in self._items]
+        child_children = self.get_children(child_item)
 
+        if parent_item in child_children:
+            print('Cannot parent child to grandchild..')
+            return
 
+        child_item.set_parent(parent_item)
+        self.move_item_under(child_item, parent_item)
 
+    def move_item_under(self, move_item, target_item):
+        """
+        Moves given _ListItem (and all children/grandchildren) visually underneath a target _ListItem
 
+        This is essentially a convenience function that calculates the index change value and then
+        calls the move_item_by function.
+        """
+        parent_index = self.list_widget.layout().indexOf(target_item)
+        child_index_original = self.list_widget.layout().indexOf(move_item)
+
+        index_change = parent_index - child_index_original + 1
+
+        if child_index_original < parent_index:
+            index_change -= 1
+
+        self.move_item_by(move_item, index_change)
+
+    def move_item_by(self, move_item, index_change):
+        """
+        Given an item, moves it and all of its children visually by a given number
+        of positions
+
+        :param move_item: Top most _ListItem of hierarchy to move
+        :param index_change: int: number of places in list to move
+        """
+        children = [move_item] + self.get_children(move_item)
+
+        for child in children:
+            child_index = self.list_widget.layout().indexOf(child)
+            self.list_widget.layout().insertWidget(child_index + index_change, child)
+            child.update()
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # List Events
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def drop_event(self, target_item, event_args):
+        """
+        drop_event is triggered when the user drags and drops one list item onto another.
+        If the item is dropped onto the top/middle section of another item, then it is parented
+        underneath the target item.
+
+        If the dropped item is dropped onto the bottom portion of a list item, it is moved underneath that item
+        and inherits that items parent, rather than being parented to the item itself.
+
+        :param target_item: _ListItem instance that was dropped onto
+        :param event_args: List: [0] = instance of _ListItem that was dragged
+                                 [1] = int representing position of drop, 0 = top/middle, 1 = bottom
+        """
+        dropped_item, location = event_args
+
+        if location == 0:
+            self.parent_item(dropped_item, target_item)
+        if location == 1:
+            if not self.get_children(target_item):
+                self.parent_item(dropped_item, target_item)
+            elif target_item.parent == dropped_item.parent:
+                self.move_item_under(dropped_item, target_item)
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # Utility
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def get_children(self, parent_item):
+        """
+        Given a _ListItem, returns a list of all children and grandchildren _ListItem's
+
+        :param parent_item: The parent _ListItem to find children/grandchildren for
+        :return List: All children/grandchildren of given _ListItem
+        """
+        children = []
+
+        def recursive_search(parent):
+            """
+            Given a _ListItem, recursively searches through all children and appends
+            each one to the children list
+
+            :param parent: _ListItem of parent to find children/grandchildren for
+            """
+            for item in self._items:
+                if item.parent == parent:
+                    children.append(item)
+                    recursive_search(item)
+
+        recursive_search(parent_item)
+
+        return children
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -85,18 +185,17 @@ class _ItemWidget(qg.QWidget):
     """
     # SIGNALS
     clicked = qc.Signal()
-    parent_changed = qg.Signal()
+    received_drop = qc.Signal(list)
+    parent_changed = qc.Signal()
 
     # CONSTANTS
-    INDENT = 16
+    INDENT = 24
 
     DEFAULT = 0
     HOVER = 1
     DOWN = 2
     SELECTED = 3
     SELECTED_HOVER = 4
-
-
 
     # PAINTING
     COLOUR_DEFAULT = [50, 50, 50]
@@ -130,9 +229,9 @@ class _ItemWidget(qg.QWidget):
         self.setAcceptDrops(True)
 
         # Hierarchy
-        self._parent = None
+        self.parent = None
         self._children = []
-        self.indent_width = self.get_indent_from_parent()
+        self.indent_width = 0
 
         # Button States
         self._hover = False
@@ -140,6 +239,9 @@ class _ItemWidget(qg.QWidget):
         self._selected = False
 
         self._icon_size = 32
+        self.set_icon_state(1)
+
+        self.setMouseTracking(True)
 
     def set_parent(self, parent):
         """
@@ -148,22 +250,27 @@ class _ItemWidget(qg.QWidget):
 
         :param parent: _ListWidget: Widget to set as parent
         """
+        self.parent = parent
 
-        self._parent = parent
+        self.update()
 
-    def get_indent_from_parent(self):
+    def update(self):
         """
-        Retrieves the parents indent level, increments it by 1 and returns the value
+        Overrides widgets default update event to add extra update functionality.
+
+        Updates:
+        Indentation of item
+        Forces paintEvent
         """
-        if self._parent is None:
-            return 0
+        if self.parent is None:
+            self.indent_width = 0
         else:
             try:
-                indent = (self._parent.indent_level + 1) * self.INDENT
-                return indent
+                self.indent_width = (self.parent.indent_width / self.INDENT + 1) * self.INDENT
             except AttributeError:
-                return 0
+                self.indent_width = 0
 
+        super(_ItemWidget, self).update()
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # Painting/Text
@@ -207,13 +314,13 @@ class _ItemWidget(qg.QWidget):
         """
         if state is 1:
             self._icon_size = 32
-            self.setFixedHeight(40)
+            self.setFixedHeight(36)
         elif state is 2:
             self._icon_size = 64
             self.setFixedHeight(80)
         else:
             self._icon_size = 0
-            self.setFixedHeight(20)
+            self.setFixedHeight(25)
 
     def paintEvent(self, event):
         painter = qg.QStylePainter(self)
@@ -250,37 +357,26 @@ class _ItemWidget(qg.QWidget):
 
         # Draw Pixmap Icon
         if self._icon_pixmap is not None and self._icon_size > 0:
-            painter.drawPixmap(qc.QRect(x+8, y+(self._icon_size/10),
+            painter.drawPixmap(qc.QRect(x+self.indent_width+8, y+(self._icon_size/10),
                                         self._icon_size, self._icon_size), self._icon_pixmap)
 
         # Draw Text
         painter.setPen(self._pen_text)
-        painter.drawText(x+self.indent_width+self._icon_size+5, y, width, height,
+        painter.drawText(x+self.indent_width+self._icon_size+16, y, width, height,
                          (qc.Qt.AlignLeft | qc.Qt.AlignVCenter), self._text)
+
+        if self.parent != None:
+            parent_text = self.parent._text
+        else:
+            parent_text = 'world'
+        painter.drawText(x + self.indent_width + self._icon_size + 80, y, width, height,
+                         (qc.Qt.AlignLeft | qc.Qt.AlignVCenter), parent_text)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # Mouse/Drag Events
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
-    def dragEnterEvent(self, event):
-        """
-        Overrides widgets default dragEnterEvent function and accepts the drag
-        :param event:
-        """
-        event.accept()
-
-    def dropEvent(self, event):
-        """
-        Overrides widgets default dropEvent function
-
-        :param event:
-        """
-        dropped_widget = event.source()
-
-        # Ideas:
-        # Emit the dropped widget in a signal to the list
-
     def mousePressEvent(self, event):
         """
         Overrides widget's mousePressEvent. Used to enable dragging functionality when the middle
@@ -289,10 +385,14 @@ class _ItemWidget(qg.QWidget):
         :param event
         """
         # DRAG FUNCTIONALITY -------------------------------------#
-        if event.button() == qc.Qt.MidButton:
+        if event.button() == qc.Qt.LeftButton:
+            self._is_down = True
+            self.update()
+        elif event.button() == qc.Qt.MidButton:
             item_mime_data = qc.QMimeData()
             item_drag = qg.QDrag(self)
             item_drag.setMimeData(item_mime_data)
+            item_drag.exec_(qc.Qt.CopyAction | qc.Qt.MoveAction, qc.Qt.CopyAction)
 
     def mouseReleaseEvent(self, event):
         """
@@ -309,6 +409,55 @@ class _ItemWidget(qg.QWidget):
                 self.clicked.emit()
 
         self.update()
+
+    def enterEvent(self, event):
+        """
+        Overrides QWidget's enterEvent. Fires every time mouse enters widget area.
+        Sets the widget's state to be hover
+
+        :param event:
+        """
+        self._hover = True
+        self.update()
+
+    def leaveEvent(self, event):
+        """
+        Overrides QWidget's leaveEvent. Fires every time mouse leaves widget area
+        Sets hover state to False
+
+        :param event:
+        """
+        self._hover = False
+        self.update()
+
+    def dragEnterEvent(self, event):
+        """
+        Overrides widgets default dragEnterEvent function and accepts the drag
+        :param event:
+        """
+        event.accept()
+
+    def dropEvent(self, event):
+        """
+        Overrides widgets default dropEvent function
+
+        :param event:
+        """
+        dropped_widget = event.source()
+
+        height = self.frameGeometry().height()
+        pos_y = event.pos().y()
+
+        h_section = height*0.30
+
+        if pos_y < (height - h_section):
+            self.received_drop.emit([dropped_widget, 0])
+        else:
+            self.received_drop.emit([dropped_widget, 1])
+
+
+        # Ideas:
+        # Emit the dropped widget in a signal to the list
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #

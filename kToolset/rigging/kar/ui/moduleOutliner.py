@@ -4,6 +4,7 @@ import PySide.QtGui as qg
 
 # KAR Imports
 import widgets
+from ..utils import KAR_uiUtils as kuiUtils; reload(kuiUtils)
 
 
 class ModuleOutliner(qg.QWidget):
@@ -33,7 +34,13 @@ class ModuleOutliner(qg.QWidget):
         self.layout().addWidget(self.module_list)
 
         # Display Order
-        self.outliner_order = self.module_list.get_order()
+       # self.outliner_order = self.module_list.get_order()
+
+        self.module_list.add_item('Test', kuiUtils.get_icon('Biped_Arm'), None)
+        self.module_list.add_item('Test2', kuiUtils.get_icon('Biped_Arm'), None)
+        self.module_list.add_item('Test3', kuiUtils.get_icon('Biped_Leg'), None)
+        self.module_list.add_item('Test4', kuiUtils.get_icon('Biped_Arm'), None)
+        self.module_list.add_item('Test5', kuiUtils.get_icon('Biped_Hand'), None)
 
     def _add_top_buttons(self):
         layout = qg.QHBoxLayout()
@@ -53,6 +60,7 @@ class ModuleOutliner(qg.QWidget):
 
     def _delete(self):
         pass
+
 
 class _ModuleOutlinerList(widgets.ListWidget):
     def __init__(self, parent=None):

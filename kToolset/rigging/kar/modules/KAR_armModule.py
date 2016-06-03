@@ -3,9 +3,10 @@
 # KAR Imports
 import module; reload(module)
 from module import Module
+from ..utils import KAR_uiUtils as kuiUtils; reload(kuiUtils)
 
 class ArmModule(Module):
-    icon = 'Biped_Arm'
+    icon = kuiUtils.get_icon('Biped_Arm')
 
     def __init__(self):
         super(ArmModule, self).__init__()

@@ -3,6 +3,8 @@ import PySide.QtCore as qc
 import PySide.QtGui as qg
 
 # KAR Imports
+
+#from kToolset.kToolset.rigging.kar import ui
 from .. import ui as kui
 
 
@@ -40,7 +42,7 @@ class ModuleAttributeEditor(qg.QWidget):
         content_frame.layout().addWidget(content_splitter)
 
         # Installed Modules List
-        modules_outliner = kui.ModuleOutliner()
+        modules_outliner = kui.ModuleOutliner(scene=scene)
         # modules_list2 = widgets.ListWidget()
         content_splitter.addWidget(modules_outliner)
         # content_splitter.addWidget(modules_list2)
