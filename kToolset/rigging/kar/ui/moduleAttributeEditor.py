@@ -3,14 +3,19 @@ import PySide.QtCore as qc
 import PySide.QtGui as qg
 
 # KAR Imports
-import widgets
+from .. import ui as kui
 
-class Modules(qg.QWidget):
+
+class ModuleAttributeEditor(qg.QWidget):
     """
     To write..
     """
-    def __init__(self):
-        super(Modules, self).__init__()
+    def __init__(self, scene, parent=None):
+        super(ModuleAttributeEditor, self).__init__(parent=parent)
+
+        # Rig Scene
+        self.scene = scene
+
         # Master layout settings
         self.setLayout(qg.QVBoxLayout())
         self.layout().setContentsMargins(5, 5, 5, 5)
@@ -24,7 +29,7 @@ class Modules(qg.QWidget):
         content_frame.setLayout(qg.QVBoxLayout())
         content_frame.layout().setContentsMargins(5, 5, 5, 5)
         content_frame.layout().setSpacing(2)
-        content_frame.layout().addWidget(widgets.decorators.Heading('Installed Modules', parent=self))
+        content_frame.layout().addWidget(kui.widgets.decorators.Heading('Installed Modules', parent=self))
         
         # Main Content
         size_policy_expanding = qg.QSizePolicy(qg.QSizePolicy.Expanding, qg.QSizePolicy.Expanding)
@@ -35,10 +40,10 @@ class Modules(qg.QWidget):
         content_frame.layout().addWidget(content_splitter)
 
         # Installed Modules List
-        modules_list = widgets.ListWidget()
-        modules_list2 = widgets.ListWidget()
-        content_splitter.addWidget(modules_list)
-        content_splitter.addWidget(modules_list2)
+        modules_outliner = kui.ModuleOutliner()
+        # modules_list2 = widgets.ListWidget()
+        content_splitter.addWidget(modules_outliner)
+        # content_splitter.addWidget(modules_list2)
 
         content_splitter.setSizes([200, 300])
 

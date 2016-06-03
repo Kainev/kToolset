@@ -1,22 +1,23 @@
-
 class KAutoRigger(object):
-    def __init__(self):
+    def __init__(self, scene):
+        self.scene = scene
+
         self.activeModules = {}
         self.inactiveModules = {}
         self.placement_systems = {}
 
-    ##----------------------------------------------------------------------------------------------------------------##
-    ##----------------------------------------------------------------------------------------------------------------##
-    ## PLACEMENT SYSTEMS
-    ##----------------------------------------------------------------------------------------------------------------##
-    ##----------------------------------------------------------------------------------------------------------------##
-    def build_placement_systems(self, system = None, all = False):
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # PLACEMENT SYSTEMS
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def build_placement_systems(self, system=None, build_all=False):
         """
         Creates an instance of each modules placement system class and runs the function
         to build the base system (i.e geo, joints, controls).
 
         :param system: UUID of specific module to build
-        :param all: Boolean: If true, builds ALL placement systems for all initialized modules
+        :param build_all: Boolean: If true, builds ALL placement systems for all initialized modules
         :return:
         """
         pass
@@ -28,12 +29,12 @@ class KAutoRigger(object):
         """
         pass
 
-    def delete_placement_system(self, system = None, all = False):
+    def delete_placement_system(self, system=None, build_all=False):
         """
         Deletes an instance/s of each modules placement system and all related Maya nodes
 
         :param system: UUID of specific modules placement system to delete
-        :param all: Boolean: If True, removes ALL placement systems
+        :param build_all: Boolean: If True, removes ALL placement systems
         :return:
         """
         pass
@@ -49,12 +50,12 @@ class KAutoRigger(object):
         """
         pass
 
-    def get_placement_position(self, system = None, all = False):
+    def get_placement_position(self, system=None, build_all=False):
         """
         Returns the positioning information from each placement system
 
         :param system: UUID of specific modules placement information to retireve
-        :param all: Boolean: If True, returns all modules placement information
+        :param build_all: Boolean: If True, returns all modules placement information
         :return:
         """
         pass

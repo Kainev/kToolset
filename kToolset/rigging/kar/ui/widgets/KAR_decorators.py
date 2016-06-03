@@ -6,7 +6,7 @@ class Heading(qg.QWidget):
     To write..
     """
 
-    def __init__(self, label, parent=None, font_size = 15, bottom_spacing = 5):
+    def __init__(self, label, parent=None, font_size=15, bottom_spacing=5):
         super(Heading, self).__init__(parent=parent)
 
         self.setLayout(qg.QVBoxLayout())
@@ -26,6 +26,7 @@ class Heading(qg.QWidget):
         self.lay_title_bar.addWidget(lb_heading)
 
         self.layout().addWidget(Separator(parent=self))
+        self.layout().addSpacerItem(qg.QSpacerItem(bottom_spacing, bottom_spacing))
 
 
 

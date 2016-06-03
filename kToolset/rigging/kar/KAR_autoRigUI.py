@@ -12,7 +12,8 @@ import PySide.QtCore as qc
 from shiboken import wrapInstance
 
 # KAR Imports
-from kToolset.kToolset.rigging.kar import ui as kui; reload(kui)
+import KAR_scene
+import ui as kui; reload(kui)
 
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -64,6 +65,9 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         self.delete_instances()
         super(self.__class__, self).__init__(parent=self.get_maya_window())
 
+        # kAutoRigger Tool
+        self.scene = KAR_scene.Scene()
+
         # Window settings
         self.setObjectName(self.__class__.TOOL_NAME)
         self.setWindowFlags(qc.Qt.WindowStaysOnTopHint)
@@ -78,7 +82,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         # Setup tabs
         self._tab_widget = kui.widgets.TabWidget()
         self.setCentralWidget(self._tab_widget)
-        self._tab_widget.add_tab(label = 'Modules', content_widget=kui.contentWidgets.Modules(), selected=True)
+        self._tab_widget.add_tab(label='Modules', content_widget=kui.ModuleAttributeEditor(self.scene), selected=True)
 
     # ---------------------------------------------------------------------------------------------------------------- #
 

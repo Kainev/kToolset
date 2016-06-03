@@ -1,16 +1,26 @@
+# Python Imports
 
-class ArmModule(object):
-    pass
+# KAR Imports
+import module; reload(module)
+from module import Module
 
-class ArmPlacementSystem(Object):
+class ArmModule(Module):
+    icon = 'Biped_Arm'
+
+    def __init__(self):
+        super(ArmModule, self).__init__()
+
+
+
+class ArmPlacementSystem(object):
     """
     ArmPlacementSystem class is responsible for creating all placement geometry and rigging structures for the user
-    to place to determine the joint positioning of the final arm module rig
+    to place to determine the joint positioning of the final arm rig
     """
     def __init__(self):
         pass
 
-    def showGeometry(self, val):
+    def show_geometry(self, val):
         """
         showGeometry accepts a boolean parameter which turns the visibility for all geometry pertaining to the
         individual module on or off
