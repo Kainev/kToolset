@@ -129,6 +129,22 @@ class ListWidget(qg.QWidget):
     # List Events
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
+    def _selection_updated(self, selected_item):
+        selected_item_index = self._items.index(selected_item)
+
+        if self._multi_select:
+            modifiers = qg.QApplication.keyboardModifiers()
+
+            if modifiers == qc.Qt.ControlModifier:
+                if selected_item_index not in self._selected_indices:
+                    self._selected_indices.append(selected_item_index)
+                elif selected_item_index in self._selected_indices:
+                    self._selected_indices.remove(selected_item_index)
+            elif modifiers == qc.Qt.ShiftModifier:
+                pass
+            else:
+                pass
+
     def drop_event(self, target_item, event_args):
         """
         drop_event is triggered when the user drags and drops one list item onto another.
@@ -152,6 +168,12 @@ class ListWidget(qg.QWidget):
                 self.parent_item(dropped_item, target_item)
             # If moving item under an item with the no children, only move
             elif target_item.parent == dropped_item.parent:
+                dropped_item.parent = target_item.parent
+                dropped_item.update()
+                self.move_item_under(dropped_item, target_item)
+            else:
+                dropped_item.parent = target_item.parent
+                dropped_item.update()
                 self.move_item_under(dropped_item, target_item)
 
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -484,7 +506,8 @@ class _ItemWidget(qg.QWidget):
         Overrides widgets default dragEnterEvent function and accepts the drag
         :param event:
         """
-        event.accept()
+        if event.source() != self:
+            event.accept()
 
     def dragLeaveEvent(self, event):
         self.set_border_colour([0, 0, 0, 0])
