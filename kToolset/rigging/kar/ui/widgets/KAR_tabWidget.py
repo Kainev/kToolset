@@ -16,18 +16,17 @@ class TabWidget(qg.QWidget):
     Widget for creating a tab menu that switches between different widgets
     """
 
-    SELECTED = 'selected' # Constant for setting the selected property of buttons
+    SELECTED = 'selected'  # Constant for setting the selected property of buttons
 
-    def __init__(self):
+    def __init__(self, parent=None):
         """
         Sets main layout for widget and establishes
         """
-        super(TabWidget, self).__init__()
+        super(TabWidget, self).__init__(parent=parent)
 
         self._tab_buttons = []
 
         self.setStyleSheet(kuiUtils.get_style_sheet('stylesheet_tabWidget'))
-        print kuiUtils.get_style_sheet('stylesheet_tabWidget')
         self.setLayout(qg.QVBoxLayout())
         self.layout().setContentsMargins(2, 2, 2, 2)
         self.layout().setSpacing(0)
@@ -65,23 +64,23 @@ class TabWidget(qg.QWidget):
             return
 
         if len(self._tab_buttons) > 0:
-            index = len(self._tab_buttons)-1
+            index = len(self._tab_buttons)
         else:
             index = 0
 
         # Create a new button to use as a tab
         self._tab_buttons.append(qg.QPushButton(label))
-        self._tab_buttons[index].setObjectName('tab')
-        self._tab_buttons[index].setFixedWidth(100)
-        self._tab_buttons[index].clicked.connect(partial(self._update_selection, index))
+        self._tab_buttons[-1].setObjectName('tab')
+        self._tab_buttons[-1].setFixedWidth(100)
+        self._tab_buttons[-1].clicked.connect(partial(self._update_selection, index))
 
         if not selected:
-            self._tab_buttons[index].setProperty(self.SELECTED, False)
+            self._tab_buttons[-1].setProperty(self.SELECTED, False)
         elif selected:
-            self._tab_buttons[index].setProperty(self.SELECTED, True)
-            self._update_selection(index)
+            self._tab_buttons[-1].setProperty(self.SELECTED, True)
+            self._update_selection(-1)
 
-        self.lay_tabs.addWidget(self._tab_buttons[index])
+        self.lay_tabs.addWidget(self._tab_buttons[-1])
         self.content_frame.layout().addWidget(content_widget)
 
     def _update_selection(self, tab_index):

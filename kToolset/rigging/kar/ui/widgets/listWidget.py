@@ -1,10 +1,14 @@
 # Python Imports
 import uuid
 from functools import partial
+import re
 # PySide Imports
 import PySide.QtCore as qc
 import PySide.QtGui as qg
+# KAR Imports
+from kToolset.kToolset.rigging.kar.utils import KAR_uiUtils as kuiUtils; reload(kuiUtils)
 
+import pydoc
 
 """
 NOTES:
@@ -20,7 +24,6 @@ and work out correct x position to draw text. Align parent text right.
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
 
-
 class ListWidget(qg.QWidget):
     """
     To Write..
@@ -29,14 +32,16 @@ class ListWidget(qg.QWidget):
     # SIGNALS
     order_changed = qc.Signal(list)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, drag_enabled=True):
         super(ListWidget, self).__init__(parent=parent)
+
+        self.setStyleSheet(kuiUtils.get_style_sheet('stylesheet_listWidget'))
 
         self._multi_select = True
         self._item_display_state = 0  # 0 = No Icons, 1 = Small Icons, 2 = Large Icons
 
         self._items = []
-        self._selected_indices = []
+        self._selected_items = []
 
         # Master Widget Layout
         self.setLayout(qg.QVBoxLayout())
@@ -45,18 +50,29 @@ class ListWidget(qg.QWidget):
 
         # Create Scroll Area for list
         self.scroll_area = qg.QScrollArea()
+        self.scroll_area.setObjectName('darkList')
         self.scroll_area.setFocusPolicy(qc.Qt.NoFocus)
         self.scroll_area.setWidgetResizable(True)
         self.layout().addWidget(self.scroll_area)
 
         # List widget
         self.list_widget = qg.QWidget()
+        self.list_widget.setObjectName('darkList')
         self.list_widget.setLayout(qg.QVBoxLayout())
         self.list_widget.layout().setContentsMargins(0, 0, 0, 0)
         self.list_widget.layout().setSpacing(0)
         self.list_widget.layout().setAlignment(qc.Qt.AlignTop)
 
         self.scroll_area.setWidget(self.list_widget)
+
+        self.drag_enabled = drag_enabled
+
+        if self.drag_enabled:
+            self._world_item = _ItemWidget(label='', icon_pixmap=None, data=None, parent=self.list_widget)
+            self._world_item.received_drop.connect(partial(self.drop_event, self._world_item))
+            self._world_item.setFixedHeight(24)
+            self._world_item.paintEvent = self.override_function
+            self.setAcceptDrops(True)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -71,12 +87,19 @@ class ListWidget(qg.QWidget):
         :param icon_pixmap: QPixmap to display on the left of text
         :param data: Arbitrary variable to store any required data, such as an identifier
         """
-        item = _ItemWidget(label, icon_pixmap, data, parent=self)
+        item = _ItemWidget(label, icon_pixmap, data, parent=self, drag_enabled=self.drag_enabled)
         self.list_widget.layout().addWidget(item)
         self._items.append(item)
 
         # Listen for drop events
         item.received_drop.connect(partial(self.drop_event, item))
+        item.clicked.connect(partial(self._selection_updated, item))
+
+        self.update_world_item()
+
+    def update_world_item(self):
+        if self.drag_enabled:
+            self.list_widget.layout().addWidget(self._world_item)
 
     def parent_item(self, child_item, parent_item):
         """
@@ -130,20 +153,104 @@ class ListWidget(qg.QWidget):
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     def _selection_updated(self, selected_item):
-        selected_item_index = self._items.index(selected_item)
-
         if self._multi_select:
             modifiers = qg.QApplication.keyboardModifiers()
 
             if modifiers == qc.Qt.ControlModifier:
-                if selected_item_index not in self._selected_indices:
-                    self._selected_indices.append(selected_item_index)
-                elif selected_item_index in self._selected_indices:
-                    self._selected_indices.remove(selected_item_index)
+                if selected_item not in self._selected_items:
+                    self._selected_items.append(selected_item)
+                elif selected_item in self._selected_items:
+                    self._selected_items.remove(selected_item)
             elif modifiers == qc.Qt.ShiftModifier:
-                pass
+                try:
+                    last_disp_index = self.list_widget.layout().indexOf(self._selected_items[0])
+                except IndexError:
+                    last_disp_index = None
+
+                selected_disp_index = self.list_widget.layout().indexOf(selected_item)
+
+                if last_disp_index is not None:
+                    new_indices = range(min(selected_disp_index, last_disp_index),
+                                        max(selected_disp_index, last_disp_index)+1)
+                else:
+                    new_indices = [selected_disp_index]
+
+                self._selected_items += [self.list_widget.layout().itemAt(index).widget()
+                                         for index in new_indices
+                                         if self.list_widget.layout().itemAt(index).widget()
+                                         not in self._selected_items]
+
             else:
-                pass
+                self._selected_items[:] = []
+                if selected_item is not None:
+                    self._selected_items.append(selected_item)
+
+        for item in self._items:
+            if item not in self._selected_items:
+                item.selected = False
+            elif item in self._selected_items:
+                item.selected = True
+
+    def remove_selected(self):
+        """
+        Removes all currently selected items and their children
+        """
+        # Make sure there is something to delete
+        if len(self._selected_items) is 0:
+            return
+
+        deletion_items = []
+
+        # Mark selected items for deletion
+        for selected_item in self._selected_items:
+            # Delete selected item
+            if selected_item not in deletion_items:
+                deletion_items.append(selected_item)
+
+            # Delete children of selected item
+            for item in self.get_children(selected_item):
+                if item not in deletion_items:
+                    deletion_items.append(item)
+
+        # Delete items
+        for item in deletion_items:
+            del self._items[self._items.index(item)]
+            self.list_widget.layout().removeWidget(item)
+            item.deleteLater()
+
+        # Make sure selection is cleared
+        self._selection_updated(None)
+
+    def remove_all(self):
+        """
+        Removes all items from the list
+        """
+        for item in self._items:
+            self.list_widget.layout().removeWidget(item)
+            item.deleteLater()
+
+        self._items[:] = []
+        self._selection_updated(None)
+
+    def rename_selected(self, text):
+        if isinstance(text, unicode):
+            for item in self._selected_items:
+                if not self._force_unique_names:
+                    item.text = text
+                else:
+                    item.text = self._generate_unique_name(text)
+
+    def dragEnterEvent(self, event):
+        if self.drag_enabled:
+            event.accept()
+
+    def dropEvent(self, event):
+        item = event.source()
+
+        # Parent item to world and move to bottom of list
+        item.parent = None
+        item.update()
+        self.move_item_under(item, self.get_display_order(self._items)[-1])
 
     def drop_event(self, target_item, event_args):
         """
@@ -158,23 +265,46 @@ class ListWidget(qg.QWidget):
         :param event_args: List: [0] = instance of _ListItem that was dragged
                                  [1] = int representing position of drop, 0 = top/middle, 1 = bottom
         """
+        # If drag/drop is disabled, return out of function.
+        # There shouldn't be any calls to this function when disabled however
+        # I'm a cautious cat
+        if not self.drag_enabled:
+            return
+
         dropped_item, location = event_args
 
-        if location == 0:
-            self.parent_item(dropped_item, target_item)
-        if location == 1:
-            # If moving item under an item with children, move and parent it
-            if self.get_children(target_item) != []:
-                self.parent_item(dropped_item, target_item)
-            # If moving item under an item with the no children, only move
-            elif target_item.parent == dropped_item.parent:
-                dropped_item.parent = target_item.parent
-                dropped_item.update()
-                self.move_item_under(dropped_item, target_item)
-            else:
-                dropped_item.parent = target_item.parent
-                dropped_item.update()
-                self.move_item_under(dropped_item, target_item)
+        # If item is dropped on the blank world item (at bottom of list), parent the dropped item to the world
+        # and move it to the bottom of the list (above blank world item)
+        if target_item == self._world_item:
+            dropped_item.parent = None
+            dropped_item.update()
+            self.move_item_under(dropped_item, self.get_display_order(self._items)[-1])
+            return
+
+        # Determines which items the event should apply to in case the user is dragging a selection
+        event_items = []
+        if dropped_item in self._selected_items:
+            event_items += self._selected_items
+            event_items = self.get_display_order(event_items, reverse=True)
+        else:
+            self._selection_updated(None)
+            self._selection_updated(dropped_item)
+            event_items.append(dropped_item)
+
+        for item in event_items:
+            # Make sure user is not trying to parent an item to one of its children
+            if target_item in self.get_children(item):
+                return
+
+            if location == 0:
+                self.parent_item(item, target_item)
+            if location == 1:
+                if self.get_children(target_item) != []:
+                    self.parent_item(item, target_item)
+                else:
+                    item.parent = target_item.parent
+                    item.update()
+                    self.move_item_under(item, target_item)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -202,7 +332,7 @@ class ListWidget(qg.QWidget):
     # ---------------------------------------------------------------------------------------------------------------- #
     def get_children(self, parent_item):
         """
-        Given a _ListItem, returns a list of all children and grandchildren _ListItem's
+        Given a _ListItem, returns a list of all children and grandchildren _ListItem's.
 
         :param parent_item: The parent _ListItem to find children/grandchildren for
         :return List: All children/grandchildren of given _ListItem
@@ -212,7 +342,7 @@ class ListWidget(qg.QWidget):
         def recursive_search(parent):
             """
             Given a _ListItem, recursively searches through all children and appends
-            each one to the children list
+            each one to the children list.
 
             :param parent: _ListItem of parent to find children/grandchildren for
             """
@@ -224,6 +354,42 @@ class ListWidget(qg.QWidget):
         recursive_search(parent_item)
 
         return children
+
+    def get_display_order(self, items, reverse=False, in_place=False):
+        """
+        Given a list of _ListItems, either returns a new list, or modifies the existing list
+        in place to be in the order in which each _ListItem is displayed.
+
+        :param items: List of _ListItems to sort
+        :param reverse: Boolean: If true, list is sorted in reverse order
+        :param in_place: If True, list is modified in place, if False, a new ordered list
+                         is returned.
+        :return list
+        """
+        if not in_place:
+            return sorted(items, key=lambda item: self.list_widget.layout().indexOf(item), reverse=reverse)
+        if in_place:
+            items.sort(items, key=lambda item: self.list_widget.layout().indexOf(item), reverse=reverse)
+
+    def _generate_unique_name(self, text):
+        list_names = [item.text for item in self._items]
+
+        try:
+            unique_mod = str(max([int(re.findall(r'\d+$', t)[0]) for t in list_names
+                                  if re.findall(r'\d+$', t) != []]) + 1)
+        except ValueError:
+            unique_mod = 1
+
+            return '%s%s' % (text, unique_mod)
+
+    @staticmethod
+    def override_function(*args):
+        """
+        Blank function, returns immediately.
+
+        Used for overriding functions to nullify their effect
+        """
+        return
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -262,7 +428,7 @@ class _ItemWidget(qg.QWidget):
                 SELECTED: qg.QBrush(qg.QColor(*COLOUR_SELECTED)),
                 SELECTED_HOVER: qg.QBrush(qg.QColor(*COLOUR_HOVER_SELECTED))}
 
-    def __init__(self, label, icon_pixmap, data, parent=None):
+    def __init__(self, label, icon_pixmap, data, parent=None, drag_enabled=True):
         super(_ItemWidget, self).__init__(parent=parent)
 
         # Text Pen
@@ -276,9 +442,11 @@ class _ItemWidget(qg.QWidget):
         self._text = label
         self._icon_pixmap = icon_pixmap
         self._data = data
+        self.drag_enabled = drag_enabled
 
         # Widget Settings
-        self.setAcceptDrops(True)
+        if self.drag_enabled:
+            self.setAcceptDrops(True)
 
         # Hierarchy
         self.parent = None
@@ -326,12 +494,30 @@ class _ItemWidget(qg.QWidget):
 
         super(_ItemWidget, self).update()
 
+    @property
+    def selected(self):
+        return self._selected
+
+    @selected.setter
+    def selected(self, value):
+        if isinstance(value, bool):
+            self._selected = value
+            self.update()
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # Painting/Text
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
-    def set_text(self, text):
+    @property
+    def text(self):
+        """
+        Returns item's text
+        """
+        return self._text
+
+    @text.setter
+    def text(self, text):
         """
         Sets the list items display text
 
@@ -459,7 +645,7 @@ class _ItemWidget(qg.QWidget):
         if event.button() == qc.Qt.LeftButton:
             self._is_down = True
             self.update()
-        elif event.button() == qc.Qt.MidButton:
+        elif event.button() == qc.Qt.MidButton and self.drag_enabled:
             item_mime_data = qc.QMimeData()
             item_drag = qg.QDrag(self)
             item_drag.setMimeData(item_mime_data)
@@ -476,7 +662,6 @@ class _ItemWidget(qg.QWidget):
         if event.button() == qc.Qt.LeftButton:
             mouse_pos = event.pos()
             if self.rect().contains(mouse_pos):
-                self._selected = True
                 self.clicked.emit()
 
         self.update()

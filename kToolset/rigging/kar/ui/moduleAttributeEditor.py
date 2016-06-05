@@ -18,36 +18,20 @@ class ModuleAttributeEditor(qg.QWidget):
         # Rig Scene
         self.scene = scene
 
-        # Master layout settings
-        self.setLayout(qg.QVBoxLayout())
-        self.layout().setContentsMargins(5, 5, 5, 5)
-        self.layout().setSpacing(0)
-        self.layout().setAlignment(qc.Qt.AlignTop)
-
         # Content Frame
         content_frame = qg.QFrame()
-        self.layout().addWidget(content_frame)
+        # self.layout().addWidget(content_frame)
         content_frame.setFrameStyle(qg.QFrame.Box | qg.QFrame.Sunken)
         content_frame.setLayout(qg.QVBoxLayout())
         content_frame.layout().setContentsMargins(5, 5, 5, 5)
         content_frame.layout().setSpacing(2)
         content_frame.layout().addWidget(kui.widgets.decorators.Heading('Installed Modules', parent=self))
-        
+
         # Main Content
         size_policy_expanding = qg.QSizePolicy(qg.QSizePolicy.Expanding, qg.QSizePolicy.Expanding)
-        
-        content_splitter = qg.QSplitter(qc.Qt.Orientation.Horizontal)
-        content_splitter.setSizePolicy(size_policy_expanding)
 
-        content_frame.layout().addWidget(content_splitter)
+        self.setSizePolicy(size_policy_expanding)
 
-        # Installed Modules List
-        modules_outliner = kui.ModuleOutliner(scene=scene)
-        # modules_list2 = widgets.ListWidget()
-        content_splitter.addWidget(modules_outliner)
-        # content_splitter.addWidget(modules_list2)
-
-        content_splitter.setSizes([200, 300])
 
 
 

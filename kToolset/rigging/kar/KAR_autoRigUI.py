@@ -71,20 +71,49 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         # Window settings
         self.setObjectName(self.__class__.TOOL_NAME)
         self.setWindowFlags(qc.Qt.WindowStaysOnTopHint)
-        self.resize(600, 400)
+        self.setDockOptions(qg.QMainWindow.AnimatedDocks | qg.QMainWindow.AllowNestedDocks |
+                            qg.QMainWindow.AllowTabbedDocks | qg.QMainWindow.VerticalTabs)
+        self.resize(920, 500)
+
         self.setWindowTitle('kAutoRigger')
         # self.setStyleSheet(ui_generic.getMainStyleSheet()) ## GET MAIN STYLE SHEET
         self.statusBar().showMessage("Ready")
 
+        # Docks
+        self._docks = {}
+        self._init_docks()
+
         # Initialize the main window's menu bar
         self._init_menu_bar()
 
-        # Setup tabs
-        self._tab_widget = kui.widgets.TabWidget()
-        self.setCentralWidget(self._tab_widget)
-        self._tab_widget.add_tab(label='Modules', content_widget=kui.ModuleAttributeEditor(self.scene), selected=True)
-
+        # Main Tabs
+        tab_widget = kui.widgets.TabWidget(parent=self)
+        self.setCentralWidget(tab_widget)
+        tab_widget.add_tab('Module Settings', kui.ModuleAttributeEditor(self.scene), True)
+        tab_widget.add_tab('Skinning', qg.QWidget(parent=self))
+        tab_widget.add_tab('Blend Shapes', qg.QWidget(parent=self))
+        tab_widget.add_tab('Publish', qg.QWidget(parent=self))
     # ---------------------------------------------------------------------------------------------------------------- #
+
+    def _init_docks(self):
+        # Add hidden docks here
+
+        for dock in self._docks:
+            self._docks[dock].show()
+            self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks[dock], qc.Qt.Horizontal)
+
+        # Add docks to show initially on startup
+        self._docks['module_outliner'] = kui.ModuleOutliner(self.scene)
+        self._docks['available_modules'] = kui.AvailableModules()
+
+        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks['available_modules'], qc.Qt.Horizontal)
+        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks['module_outliner'], qc.Qt.Horizontal)
+
+    def _show_dock(self, dock_name):
+        try:
+            self._docks[dock_name].show()
+        except KeyError:
+            pass
 
     def _init_menu_bar(self):
         """
@@ -148,12 +177,14 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         win_action_parent_editor = qg.QAction('Parent Editor', self)
         win_action_placement_systems = qg.QAction('Placement Editor', self)
         win_action_space_editor = qg.QAction('Space Editor', self)
+        win_action_global_settings = qg.QAction('Global Settings', self)
         # Functionality
-        win_action_module_outliner.triggered.connect(self.display_in_dev_message)
-        win_action_avail_modules.triggered.connect(self.display_in_dev_message)
+        win_action_module_outliner.triggered.connect(partial(self._show_dock, 'module_outliner'))
+        win_action_avail_modules.triggered.connect(partial(self._show_dock, 'available_modules'))
         win_action_parent_editor.triggered.connect(self.display_in_dev_message)
         win_action_placement_systems.triggered.connect(self.display_in_dev_message)
         win_action_space_editor.triggered.connect(self.display_in_dev_message)
+        win_action_global_settings.triggered.connect(self.display_in_dev_message)
         # Add Actions
         windows_menu.addAction(win_action_module_outliner)
         windows_menu.addAction(win_action_avail_modules)
@@ -162,6 +193,8 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         windows_menu.addAction(win_action_parent_editor)
         windows_menu.addAction(win_action_placement_systems)
         windows_menu.addAction(win_action_space_editor)
+        win_sep02 = windows_menu.addSeparator()
+        windows_menu.addAction(win_action_global_settings)
 
         # HELP MENU --------------------------------------------------------------#
         help_menu.setFixedWidth(215)

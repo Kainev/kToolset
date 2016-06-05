@@ -5,6 +5,8 @@ import PySide.QtGui as qg
 # KAR Imports
 import widgets
 
+from .. import modules; reload(modules)
+
 
 class AvailableModules(qg.QDockWidget):
     """
@@ -14,40 +16,50 @@ class AvailableModules(qg.QDockWidget):
     # SIGNALS
     add_module = qc.Signal()
 
+    # AVAILABLE MODULES
+    MODULES = [{'name': 'Biped_Arm', 'template': modules.ArmModule},
+               {'name': 'Biped_Hand', 'template': modules.HandModule},
+               {'name': 'Biped_Spine', 'template': modules.SpineModule},
+               {'name': 'Biped_Leg', 'template': modules.LegModule},
+               {'name': 'Biped_Foot', 'template': modules.FootModule},
+               {'name': 'Biped_Joint', 'template': modules.JointModule}]
+
     def __init__(self, parent=None):
-        super(AvailableModules, self).__init__('Add Modules', parent=parent)
+        super(AvailableModules, self).__init__('Available Modules', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
+        self.setMinimumWidth(175)
 
         self.content_widget = qg.QWidget()
-
         self.content_widget.setLayout(qg.QVBoxLayout())
-        self.content_widget.layout().setContentsMargins(0, 0, 0, 0)
+        self.content_widget.layout().setContentsMargins(5, 5, 5, 5)
         self.content_widget.layout().setSpacing(2)
         self.content_widget.layout().setAlignment(qc.Qt.AlignTop)
-
         self.setWidget(self.content_widget)
 
-        self._add_top_buttons()
+        self.module_list = widgets.ListWidget(parent=self, drag_enabled=False)
 
-        module_list = widgets.ListWidget(parent=self)
-        self.content_widget.layout().addWidget(module_list)
+        add_button_upper = qg.QPushButton('Add')
+        main_label_upper = qg.QLabel('Available Modules')
+        main_label_upper.setAlignment(qc.Qt.AlignHCenter | qc.Qt.AlignVCenter)
 
-    def _add_top_buttons(self):
-        layout = qg.QHBoxLayout()
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(3)
-        layout.setAlignment(qc.Qt.AlignLeft)
+        add_button_lower = qg.QPushButton('Add')
+        main_label_lower = qg.QLabel('Available Modules')
+        main_label_lower.setAlignment(qc.Qt.AlignHCenter | qc.Qt.AlignVCenter)
 
-        btn_delete = qg.QPushButton('Delete', self)
-        btn_delete.setFixedWidth(55)
-        btn_delete.setFixedHeight(20)
-        btn_delete.clicked.connect(self._delete)
+        self.content_widget.layout().addWidget(add_button_upper)
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addWidget(main_label_upper)
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addWidget(self.module_list)
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addWidget(main_label_lower)
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addWidget(add_button_lower)
 
-        layout.addWidget(btn_delete)
+        self._add_list_items()
 
-        self.content_widget.layout().addLayout(layout)
-
-    def _delete(self):
-        pass
+    def _add_list_items(self):
+        for module in self.MODULES:
+            self.module_list.add_item(module['name'], module['template'].icon, data=module)
 
