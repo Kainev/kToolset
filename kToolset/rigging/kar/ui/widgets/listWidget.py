@@ -80,13 +80,14 @@ class ListWidget(qg.QWidget):
     # List Item Manipulation Functions
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
-    def add_item(self, label, icon_pixmap, data):
+    def add_item(self, label, icon_pixmap=None, data=None):
         """
         Adds a new item to the list.
 
         :param label: Text to display on list item
         :param icon_pixmap: QPixmap to display on the left of text
         :param data: Arbitrary variable to store any required data, such as an identifier
+        :returns Newly created _ListWidget
         """
         item = _ItemWidget(label, icon_pixmap, data, parent=self, drag_enabled=self.drag_enabled, drop_enabled=self.drop_enabled)
         self.list_widget.layout().addWidget(item)
@@ -97,6 +98,8 @@ class ListWidget(qg.QWidget):
         item.clicked.connect(partial(self._selection_updated, item))
 
         self.update_world_item()
+
+        return item
 
     def update_world_item(self):
         """
@@ -324,6 +327,14 @@ class ListWidget(qg.QWidget):
         return event_items
 
     def get_selected_data(self, hierarchy=False):
+        """
+        Returns a list containing the data from each selected item. If Hierarchy is True, then the data
+        of each selected items children is also returned.
+
+        The list is returned in the order in which the items are displayed
+
+        :param hierarchy: Boolean: If true, the data from all selected item's children is also returned
+        """
         items = []
 
         # Mark selected items for deletion
@@ -338,12 +349,25 @@ class ListWidget(qg.QWidget):
                     if item not in items:
                         items.append(item)
 
-        return [item.data for item in items]
+        return [item.data for item in self.get_display_order(items)]
 
     def get_all_data(self):
-        return [item.data for item in self._items]
+        """
+        Returns a list containing the contents of each items data attribute
+
+        The list is returned in the order in which the items are display
+        """
+        return [item.data for item in self.get_display_order(self._items)]
 
     def get_selected_items(self, hierarchy=False):
+        """
+        Returns a list containing the currently selected list item widgets. If Hierarchy is True, then the child items
+        of each item are also returned.
+
+        The list is returned in the order in which the items are displayed
+
+        :param hierarchy: Boolean: If true, all selected item's children are also returned
+        """
         items = []
 
         # Mark selected items for deletion
@@ -361,7 +385,11 @@ class ListWidget(qg.QWidget):
         return items
 
     def get_all_items(self):
-        return self._items
+        """
+        Returns a list containing all current list items, ordered as they appear in the outliner (top to bottom)
+        """
+        return self.get_display_order(self._items)
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # List Display

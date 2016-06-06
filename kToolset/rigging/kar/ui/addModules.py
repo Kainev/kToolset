@@ -6,7 +6,6 @@ import PySide.QtGui as qg
 import widgets
 
 from .. import modules; reload(modules)
-from ..KAR_scene import Scene
 
 
 class AvailableModules(qg.QDockWidget):
@@ -40,7 +39,7 @@ class AvailableModules(qg.QDockWidget):
         self.content_widget.layout().setAlignment(qc.Qt.AlignTop)
         self.setWidget(self.content_widget)
 
-        self.module_list = widgets.ListWidget(parent=self, drag_enabled=True, drop_enabled=False)
+        self.module_list = widgets.ListWidget(parent=self, drop_enabled=False)
         self.module_list.list_widget.setObjectName('AvailableModulesList')
 
         add_button_upper = qg.QPushButton('Add')
@@ -61,7 +60,7 @@ class AvailableModules(qg.QDockWidget):
         self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
         self.content_widget.layout().addWidget(add_button_lower)
 
-        add_button_lower.clicked.connect(self._add_module)
+        add_button_lower.clicked.connect(self._add_selected)
 
         self._add_list_items()
 
@@ -72,9 +71,9 @@ class AvailableModules(qg.QDockWidget):
         for module in self.MODULES:
             self.module_list.add_item(module.__name__, module.icon, data=module)
 
-    def _add_module(self):
+    def _add_selected(self):
         """
-        Adds the modules to the scene and forces an update
+        Adds currently selected modules to the scene and forces an update
         """
         _modules = self.module_list.get_selected_data()
         for m in _modules:
@@ -83,17 +82,29 @@ class AvailableModules(qg.QDockWidget):
 
         self.scene.force_update()
 
-    def drag_add(self, source_item):
+    def drag_add(self, event_args):
+        """
+        Adds dragged items into the scene.
+
+        :param event_args: _ListItem from self.module_list that was dragged to the outliner
+        """
+        dropped_item, target_item, parent_item = event_args
+
         selected_modules = self.module_list.get_selected_items()
 
-        if source_item in selected_modules:
+        # Checks to see if the dragged item was in the current selection.
+        # If it is, all selected items are added to the outliner
+        # If the dragged item was NOT part of the selection, then only the dragged item is added
+        if dropped_item in selected_modules:
             for m in selected_modules:
                 _module = m.data()
                 self.scene.add_module(_module, trigger_update=False)
         else:
-            _module = source_item.data()
+            _module = dropped_item.data()
             self.scene.add_module(_module, trigger_update=False)
 
+        # Forces the scene to send out an update signal, causing the outliner to add the new items
+        # to its list
         self.scene.force_update()
 
 

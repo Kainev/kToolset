@@ -6,5 +6,5 @@ from moduleAttributeEditor import ModuleAttributeEditor
 import moduleOutliner; reload(moduleOutliner)
 from moduleOutliner import ModuleOutliner
 
-import availableModules; reload(availableModules)
-from availableModules import AvailableModules
+import addModules; reload(addModules)
+from addModules import AvailableModules
