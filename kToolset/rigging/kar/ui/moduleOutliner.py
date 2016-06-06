@@ -3,6 +3,7 @@ import PySide.QtCore as qc
 import PySide.QtGui as qg
 
 # KAR Imports
+#from .. import KAR_autoRigUI as karUI
 import widgets
 from ..utils import KAR_uiUtils as kuiUtils; reload(kuiUtils)
 
@@ -18,13 +19,16 @@ class ModuleOutliner(qg.QDockWidget):
     # Order of list items UUIDS
     outliner_order = []
 
-    def __init__(self, scene, parent=None):
+    def __init__(self, scene, main_ui, parent=None):
         super(ModuleOutliner, self).__init__('Module Outliner', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
 
         # Rig Scene
         self.scene = scene
+
+        self.main_ui = main_ui
+        print self.main_ui.docks
 
         # Content Widget
         self.content_widget = qg.QWidget()
@@ -39,14 +43,19 @@ class ModuleOutliner(qg.QDockWidget):
         self.module_list = _ModuleOutlinerList(parent=self)
         self.content_widget.layout().addWidget(self.module_list)
 
-        self.module_list.add_item('Test', kuiUtils.get_icon('Biped_Arm'), None)
-        self.module_list.add_item('Test2', kuiUtils.get_icon('Biped_Arm'), None)
-        self.module_list.add_item('Test3', kuiUtils.get_icon('Biped_Leg'), None)
-        self.module_list.add_item('Test4', kuiUtils.get_icon('Biped_Arm'), None)
-        self.module_list.add_item('Test5', kuiUtils.get_icon('Biped_Hand'), None)
-
         self.setMinimumWidth(175)
         self.update()
+
+        self.module_list.add_item('test', None, None)
+        self.module_list.add_item('test', None, None)
+        self.module_list.add_item('test', None, None)
+        self.module_list.add_item('test', None, None)
+
+        # Connect Signals
+        self.scene.scene_updated.connect(self.update_outliner)
+        self.module_list.drag_add.connect(self.main_ui.docks['available_modules'].drag_add)
+
+
 
     def _add_top_buttons(self):
         layout = qg.QHBoxLayout()
@@ -63,14 +72,57 @@ class ModuleOutliner(qg.QDockWidget):
 
         self.content_widget.layout().addLayout(layout)
 
-
     def _delete(self):
+        """
+        Retrieves the list of UUIDs stored in each selected _ListItem's data attribute,
+        deletes the list items then removes the corresponding modules from the rig scene
+        """
+        removed_data = self.module_list.get_selected_data(hierarchy=True)
         self.module_list.remove_selected()
+        self.scene.delete_modules(removed_data, trigger_update=False)
+
+    def update_outliner(self):
+        """
+        Compares the outliner list items to the rig scenes module list.
+
+        Scene Module not in outliner: Adds new list item corresponding to module
+        Item in list with no match in module list: Deletes list item
+        Item parent does not match modules parent: Reparents list item to correct item
+        :return:
+        """
+        module_list_data = self.module_list.get_all_data()
+        scene_modules = self.scene.get_all_modules()
+
+        for _module in scene_modules:
+            val = next((x for x in module_list_data if x == scene_modules[_module].uuid), None)
+
+            if val is None:
+                self.module_list.add_item(scene_modules[_module].name, icon_pixmap=scene_modules[_module].icon,
+                                          data=scene_modules[_module].uuid)
 
 
 class _ModuleOutlinerList(widgets.ListWidget):
-    def __init__(self, parent=None):
+    # Signals
+    drag_add = qc.Signal(qg.QWidget)
+
+    def __init__(self, parent=None, ):
         super(_ModuleOutlinerList, self).__init__(parent=parent)
+
+    def dropEvent(self, event):
+        if event.source().parent().objectName() == 'AvailableModulesList':
+            self.drag_add.emit(event.source())
+            return
+
+        super(_ModuleOutlinerList, self).drop_event(target_item, event_args)
+
+
+    def drop_event(self, target_item, event_args):
+        dropped_item, location = event_args
+
+        if dropped_item.parent().objectName() == 'AvailableModulesList':
+            return
+
+        super(_ModuleOutlinerList, self).drop_event(target_item, event_args)
 
 
 

@@ -12,7 +12,7 @@ import PySide.QtCore as qc
 from shiboken import wrapInstance
 
 # KAR Imports
-import KAR_scene
+import KAR_scene; reload(KAR_scene)
 import ui as kui; reload(kui)
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -20,7 +20,7 @@ import ui as kui; reload(kui)
 # INITIALIZE FUNCTION
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
-kAuto_rig_ui = None
+MainUI = None
 app_running = False
 
 
@@ -31,17 +31,17 @@ def initialize():
     then this function has no effect.
     """
     global app_running
-    global kAuto_rig_ui
+    global MainUI
 
     if not app_running:
         app_running = True
-        kAuto_rig_ui = None
+        MainUI = None
 
-        if kAuto_rig_ui is None:
-            kAuto_rig_ui = KAutoRiggerUI()
-            kAuto_rig_ui.run()
+        if MainUI is None:
+            MainUI = KAutoRiggerUI()
+            MainUI.run()
     else:
-        kAuto_rig_ui.run()
+        MainUI.run()
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -80,7 +80,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         self.statusBar().showMessage("Ready")
 
         # Docks
-        self._docks = {}
+        self.docks = {}
         self._init_docks()
 
         # Initialize the main window's menu bar
@@ -95,23 +95,28 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         tab_widget.add_tab('Publish', qg.QWidget(parent=self))
     # ---------------------------------------------------------------------------------------------------------------- #
 
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # Build UI functions
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
     def _init_docks(self):
         # Add hidden docks here
 
-        for dock in self._docks:
-            self._docks[dock].show()
-            self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks[dock], qc.Qt.Horizontal)
+        for dock in self.docks:
+            self.docks[dock].show()
+            self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks[dock], qc.Qt.Horizontal)
 
         # Add docks to show initially on startup
-        self._docks['module_outliner'] = kui.ModuleOutliner(self.scene)
-        self._docks['available_modules'] = kui.AvailableModules()
+        self.docks['available_modules'] = kui.AvailableModules(self.scene)
+        self.docks['module_outliner'] = kui.ModuleOutliner(self.scene, main_ui=self)
 
-        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks['available_modules'], qc.Qt.Horizontal)
-        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self._docks['module_outliner'], qc.Qt.Horizontal)
+        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['available_modules'], qc.Qt.Horizontal)
+        self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['module_outliner'], qc.Qt.Horizontal)
 
     def _show_dock(self, dock_name):
         try:
-            self._docks[dock_name].show()
+            self.docks[dock_name].show()
         except KeyError:
             pass
 
@@ -216,6 +221,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         help_menu.addAction(help_action_docs)
         help_menu.addAction(help_action_website)
 
+
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # OPEN/CLOSE FUNCTIONS FOR UI
@@ -268,15 +274,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
                     obj.setParent(None)
                     obj.deleteLater()
 
-    @staticmethod
-    def get_maya_window():
-        # Get Mayas window wrapped as a widget
-        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
-        maya_main_window = wrapInstance(long(maya_main_window_ptr),
-                                        qg.QMainWindow)
-
-        return maya_main_window
-
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # MISC FUNCTIONS
@@ -289,3 +286,16 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         """
         message = "Feature Unavailable: In Development"
         qg.QMessageBox.question(self, 'Development', message, qg.QMessageBox.Ok)
+
+    @staticmethod
+    def get_maya_window():
+        """
+        Returns Maya's Main Window wrapped as a QWidget
+        :return:
+        """
+        # Get Mayas window wrapped as a widget
+        maya_main_window_ptr = OpenMayaUI.MQtUtil.mainWindow()
+        maya_main_window = wrapInstance(long(maya_main_window_ptr),
+                                        qg.QMainWindow)
+
+        return maya_main_window

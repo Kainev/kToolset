@@ -6,6 +6,7 @@ import PySide.QtGui as qg
 import widgets
 
 from .. import modules; reload(modules)
+from ..KAR_scene import Scene
 
 
 class AvailableModules(qg.QDockWidget):
@@ -14,21 +15,23 @@ class AvailableModules(qg.QDockWidget):
     and allows you to select a module to edit.
     """
     # SIGNALS
-    add_module = qc.Signal()
+    add_module = qc.Signal(list)
 
     # AVAILABLE MODULES
-    MODULES = [{'name': 'Biped_Arm', 'template': modules.ArmModule},
-               {'name': 'Biped_Hand', 'template': modules.HandModule},
-               {'name': 'Biped_Spine', 'template': modules.SpineModule},
-               {'name': 'Biped_Leg', 'template': modules.LegModule},
-               {'name': 'Biped_Foot', 'template': modules.FootModule},
-               {'name': 'Biped_Joint', 'template': modules.JointModule}]
+    MODULES = [modules.ArmModule,
+               modules.HandModule,
+               modules.SpineModule,
+               modules.LegModule,
+               modules.FootModule,
+               modules.JointModule]
 
-    def __init__(self, parent=None):
+    def __init__(self, scene, parent=None):
         super(AvailableModules, self).__init__('Available Modules', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
         self.setMinimumWidth(175)
+
+        self.scene = scene
 
         self.content_widget = qg.QWidget()
         self.content_widget.setLayout(qg.QVBoxLayout())
@@ -37,7 +40,8 @@ class AvailableModules(qg.QDockWidget):
         self.content_widget.layout().setAlignment(qc.Qt.AlignTop)
         self.setWidget(self.content_widget)
 
-        self.module_list = widgets.ListWidget(parent=self, drag_enabled=False)
+        self.module_list = widgets.ListWidget(parent=self, drag_enabled=True, drop_enabled=False)
+        self.module_list.list_widget.setObjectName('AvailableModulesList')
 
         add_button_upper = qg.QPushButton('Add')
         main_label_upper = qg.QLabel('Available Modules')
@@ -57,9 +61,39 @@ class AvailableModules(qg.QDockWidget):
         self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
         self.content_widget.layout().addWidget(add_button_lower)
 
+        add_button_lower.clicked.connect(self._add_module)
+
         self._add_list_items()
 
     def _add_list_items(self):
+        """
+        Adds the visual items to the list
+        """
         for module in self.MODULES:
-            self.module_list.add_item(module['name'], module['template'].icon, data=module)
+            self.module_list.add_item(module.__name__, module.icon, data=module)
+
+    def _add_module(self):
+        """
+        Adds the modules to the scene and forces an update
+        """
+        _modules = self.module_list.get_selected_data()
+        for m in _modules:
+            _module = m()
+            self.scene.add_module(_module, trigger_update=False)
+
+        self.scene.force_update()
+
+    def drag_add(self, source_item):
+        selected_modules = self.module_list.get_selected_items()
+
+        if source_item in selected_modules:
+            for m in selected_modules:
+                _module = m.data()
+                self.scene.add_module(_module, trigger_update=False)
+        else:
+            _module = source_item.data()
+            self.scene.add_module(_module, trigger_update=False)
+
+        self.scene.force_update()
+
 

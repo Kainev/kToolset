@@ -1,9 +1,9 @@
-QWidget#darkList
+QWidget
 {
     background-color : rgb(50, 50, 50)
 }
 
-QScrollArea#darkList
+QScrollArea
 {
     background-color: rgb(50, 50, 50)
 }

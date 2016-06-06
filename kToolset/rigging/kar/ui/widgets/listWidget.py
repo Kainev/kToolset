@@ -32,7 +32,7 @@ class ListWidget(qg.QWidget):
     # SIGNALS
     order_changed = qc.Signal(list)
 
-    def __init__(self, parent=None, drag_enabled=True):
+    def __init__(self, parent=None, drag_enabled=True, drop_enabled=True):
         super(ListWidget, self).__init__(parent=parent)
 
         self.setStyleSheet(kuiUtils.get_style_sheet('stylesheet_listWidget'))
@@ -66,8 +66,9 @@ class ListWidget(qg.QWidget):
         self.scroll_area.setWidget(self.list_widget)
 
         self.drag_enabled = drag_enabled
+        self.drop_enabled = drop_enabled
 
-        if self.drag_enabled:
+        if self.drop_enabled:
             self._world_item = _ItemWidget(label='', icon_pixmap=None, data=None, parent=self.list_widget)
             self._world_item.received_drop.connect(partial(self.drop_event, self._world_item))
             self._world_item.setFixedHeight(24)
@@ -87,7 +88,7 @@ class ListWidget(qg.QWidget):
         :param icon_pixmap: QPixmap to display on the left of text
         :param data: Arbitrary variable to store any required data, such as an identifier
         """
-        item = _ItemWidget(label, icon_pixmap, data, parent=self, drag_enabled=self.drag_enabled)
+        item = _ItemWidget(label, icon_pixmap, data, parent=self, drag_enabled=self.drag_enabled, drop_enabled=self.drop_enabled)
         self.list_widget.layout().addWidget(item)
         self._items.append(item)
 
@@ -98,7 +99,13 @@ class ListWidget(qg.QWidget):
         self.update_world_item()
 
     def update_world_item(self):
-        if self.drag_enabled:
+        """
+        Moves the world item (blank _ListItem) to the bottom of the list
+
+        The world item exists so the user can always drag an item back to world space and un-parent it from its
+        current parent
+        """
+        if self.drop_enabled:
             self.list_widget.layout().addWidget(self._world_item)
 
     def parent_item(self, child_item, parent_item):
@@ -146,6 +153,8 @@ class ListWidget(qg.QWidget):
             child_index = self.list_widget.layout().indexOf(child)
             self.list_widget.layout().insertWidget(child_index + index_change, child)
             child.update()
+
+        self.update_world_item()
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -241,7 +250,7 @@ class ListWidget(qg.QWidget):
                     item.text = self._generate_unique_name(text)
 
     def dragEnterEvent(self, event):
-        if self.drag_enabled:
+        if self.drop_enabled:
             event.accept()
 
     def dropEvent(self, event):
@@ -268,7 +277,7 @@ class ListWidget(qg.QWidget):
         # If drag/drop is disabled, return out of function.
         # There shouldn't be any calls to this function when disabled however
         # I'm a cautious cat
-        if not self.drag_enabled:
+        if not self.drop_enabled:
             return
 
         dropped_item, location = event_args
@@ -306,6 +315,45 @@ class ListWidget(qg.QWidget):
                     item.update()
                     self.move_item_under(item, target_item)
 
+    def get_selected_data(self, hierarchy=False):
+        items = []
+
+        # Mark selected items for deletion
+        for selected_item in self._selected_items:
+            # Delete selected item
+            if selected_item not in items:
+                items.append(selected_item)
+
+            if hierarchy:
+                # Delete children of selected item
+                for item in self.get_children(selected_item):
+                    if item not in items:
+                        items.append(item)
+
+        return [item.data for item in items]
+
+    def get_all_data(self):
+        return [item.data for item in self._items]
+
+    def get_selected_items(self, hierarchy=False):
+        items = []
+
+        # Mark selected items for deletion
+        for selected_item in self._selected_items:
+            # Delete selected item
+            if selected_item not in items:
+                items.append(selected_item)
+
+            if hierarchy:
+                # Delete children of selected item
+                for item in self.get_children(selected_item):
+                    if item not in items:
+                        items.append(item)
+
+        return items
+
+    def get_all_items(self):
+        return self._items
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # List Display
@@ -428,7 +476,7 @@ class _ItemWidget(qg.QWidget):
                 SELECTED: qg.QBrush(qg.QColor(*COLOUR_SELECTED)),
                 SELECTED_HOVER: qg.QBrush(qg.QColor(*COLOUR_HOVER_SELECTED))}
 
-    def __init__(self, label, icon_pixmap, data, parent=None, drag_enabled=True):
+    def __init__(self, label, icon_pixmap, data, parent=None, drag_enabled=True, drop_enabled=True):
         super(_ItemWidget, self).__init__(parent=parent)
 
         # Text Pen
@@ -441,15 +489,16 @@ class _ItemWidget(qg.QWidget):
 
         self._text = label
         self._icon_pixmap = icon_pixmap
-        self._data = data
+        self.data = data
         self.drag_enabled = drag_enabled
+        self.drop_enabled = drop_enabled
 
         # Widget Settings
-        if self.drag_enabled:
+        if self.drop_enabled:
             self.setAcceptDrops(True)
 
         # Hierarchy
-        self.parent = None
+        self.parent_item = None
         self._children = []
         self.indent_width = 0
 
@@ -472,7 +521,7 @@ class _ItemWidget(qg.QWidget):
 
         :param parent: _ListWidget: Widget to set as parent
         """
-        self.parent = parent
+        self.parent_item = parent
 
         self.update()
 
@@ -484,11 +533,11 @@ class _ItemWidget(qg.QWidget):
         Indentation of item
         Forces paintEvent
         """
-        if self.parent is None:
+        if self.parent_item is None:
             self.indent_width = 0
         else:
             try:
-                self.indent_width = (self.parent.indent_width / self.INDENT + 1) * self.INDENT
+                self.indent_width = (self.parent_item.indent_width / self.INDENT + 1) * self.INDENT
             except AttributeError:
                 self.indent_width = 0
 
@@ -618,8 +667,8 @@ class _ItemWidget(qg.QWidget):
         painter.drawText(x+self.indent_width+self._icon_size+16, y, width, height,
                          (qc.Qt.AlignLeft | qc.Qt.AlignVCenter), self._text)
 
-        if self.parent != None:
-            parent_text = self.parent._text
+        if self.parent_item is not None:
+            parent_text = self.parent_item._text
         else:
             parent_text = 'world'
         painter.drawText(x + self.indent_width + self._icon_size + 80, y, width, height,
@@ -691,7 +740,7 @@ class _ItemWidget(qg.QWidget):
         Overrides widgets default dragEnterEvent function and accepts the drag
         :param event:
         """
-        if event.source() != self:
+        if event.source() != self and self.drop_enabled:
             event.accept()
 
     def dragLeaveEvent(self, event):
@@ -705,6 +754,10 @@ class _ItemWidget(qg.QWidget):
 
         :param event:
         """
+
+        if not self.drop_enabled:
+            return
+
         dropped_widget = event.source()
 
         height = self.frameGeometry().height()
