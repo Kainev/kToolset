@@ -65,7 +65,7 @@ class ModuleOutliner(qg.QDockWidget):
         layout.addWidget(btn_delete)
 
         # Connect Signals
-        btn_delete.clicked.connect(self._delete_selected)
+        btn_delete.clicked.connect(self.delete_selected)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #

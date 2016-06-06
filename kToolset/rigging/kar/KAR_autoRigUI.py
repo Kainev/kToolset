@@ -108,8 +108,8 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
             self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks[dock], qc.Qt.Horizontal)
 
         # Add docks to show initially on startup
-        self.docks['available_modules'] = kui.AvailableModules(self.scene)
-        self.docks['module_outliner'] = kui.ModuleOutliner(self.scene, main_ui=self)
+        self.docks['available_modules'] = kui.AvailableModules(self.scene, parent=self)
+        self.docks['module_outliner'] = kui.ModuleOutliner(self.scene, main_ui=self, parent=self)
 
         self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['available_modules'], qc.Qt.Horizontal)
         self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['module_outliner'], qc.Qt.Horizontal)

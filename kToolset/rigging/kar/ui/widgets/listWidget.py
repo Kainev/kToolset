@@ -150,12 +150,12 @@ class ListWidget(qg.QWidget):
         :param move_item: Top most _ListItem of hierarchy to move
         :param index_change: int: number of places in list to move
         """
-        children = [move_item] + self.get_children(move_item)
+        items = [move_item] + self.get_children(move_item)
 
-        for child in children:
-            child_index = self.list_widget.layout().indexOf(child)
-            self.list_widget.layout().insertWidget(child_index + index_change, child)
-            child.update()
+        for item in items:
+            current_index = self.list_widget.layout().indexOf(item)
+            self.list_widget.layout().insertWidget(current_index + index_change, item)
+            item.update()
 
         self.update_world_item()
 
@@ -191,7 +191,6 @@ class ListWidget(qg.QWidget):
                                          for index in new_indices
                                          if self.list_widget.layout().itemAt(index).widget()
                                          not in self._selected_items]
-
             else:
                 self._selected_items[:] = []
                 if selected_item is not None:
