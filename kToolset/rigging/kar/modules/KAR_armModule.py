@@ -28,6 +28,5 @@ class ArmPlacementSystem(object):
 
         :param val: Accepts a boolean parameter. If True, all geometry will be visible.
                If False, all geometry will be hidden
-        :return:
         """
         pass
