@@ -10,7 +10,7 @@ class ArmModule(Module):
 
     def __init__(self):
         super(ArmModule, self).__init__()
-
+        self.name = 'Biped_Arm'
 
 
 class ArmPlacementSystem(object):

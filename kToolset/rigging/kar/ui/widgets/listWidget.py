@@ -108,7 +108,7 @@ class ListWidget(qg.QWidget):
         if self.drop_enabled:
             self.list_widget.layout().addWidget(self._world_item)
 
-    def parent_item(self, child_item, parent_item):
+    def move_and_parent(self, child_item, parent_item):
         """
         Sets the parent of a given item and moves that item visually underneath
         its new parent
@@ -257,9 +257,12 @@ class ListWidget(qg.QWidget):
         item = event.source()
 
         # Parent item to world and move to bottom of list
-        item.parent = None
-        item.update()
-        self.move_item_under(item, self.get_display_order(self._items)[-1])
+        event_items = self.resolve_drag_items(item)
+        print event_items
+        for event_item in event_items:
+            event_item.parent_item = None
+            event_item.update()
+            self.move_item_under(event_item, self.get_display_order(self._items, reverse=True)[-1])
 
     def drop_event(self, target_item, event_args):
         """
@@ -285,20 +288,13 @@ class ListWidget(qg.QWidget):
         # If item is dropped on the blank world item (at bottom of list), parent the dropped item to the world
         # and move it to the bottom of the list (above blank world item)
         if target_item == self._world_item:
-            dropped_item.parent = None
+            dropped_item.parent_item = None
             dropped_item.update()
             self.move_item_under(dropped_item, self.get_display_order(self._items)[-1])
             return
 
         # Determines which items the event should apply to in case the user is dragging a selection
-        event_items = []
-        if dropped_item in self._selected_items:
-            event_items += self._selected_items
-            event_items = self.get_display_order(event_items, reverse=True)
-        else:
-            self._selection_updated(None)
-            self._selection_updated(dropped_item)
-            event_items.append(dropped_item)
+        event_items = self.resolve_drag_items(dropped_item)
 
         for item in event_items:
             # Make sure user is not trying to parent an item to one of its children
@@ -306,14 +302,26 @@ class ListWidget(qg.QWidget):
                 return
 
             if location == 0:
-                self.parent_item(item, target_item)
+                self.move_and_parent(item, target_item)
             if location == 1:
                 if self.get_children(target_item) != []:
-                    self.parent_item(item, target_item)
+                    self.move_and_parent(item, target_item)
                 else:
-                    item.parent = target_item.parent
+                    item.parent_item = target_item.parent_item
                     item.update()
                     self.move_item_under(item, target_item)
+
+    def resolve_drag_items(self, source_item):
+        event_items = []
+        if source_item in self._selected_items:
+            event_items += self._selected_items
+            event_items = self.get_display_order(event_items, reverse=True)
+        else:
+            self._selection_updated(None)
+            self._selection_updated(source_item)
+            event_items.append(source_item)
+
+        return event_items
 
     def get_selected_data(self, hierarchy=False):
         items = []
@@ -395,7 +403,7 @@ class ListWidget(qg.QWidget):
             :param parent: _ListItem of parent to find children/grandchildren for
             """
             for item in self._items:
-                if item.parent == parent:
+                if item.parent_item == parent:
                     children.append(item)
                     recursive_search(item)
 

@@ -113,7 +113,7 @@ class _ModuleOutlinerList(widgets.ListWidget):
             self.drag_add.emit(event.source())
             return
 
-        super(_ModuleOutlinerList, self).drop_event(target_item, event_args)
+        super(_ModuleOutlinerList, self).dropEvent(event)
 
 
     def drop_event(self, target_item, event_args):
