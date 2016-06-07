@@ -260,11 +260,10 @@ class ListWidget(qg.QWidget):
 
         # Parent item to world and move to bottom of list
         event_items = self.resolve_drag_items(item)
-        print event_items
         for event_item in event_items:
             event_item.parent_item = None
             event_item.update()
-            self.move_item_under(event_item, self.get_display_order(self._items, reverse=True)[-1])
+            self.move_item_under(event_item, self.get_display_order(self._items)[-1])
 
     def drop_event(self, target_item, event_args):
         """

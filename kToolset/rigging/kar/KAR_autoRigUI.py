@@ -102,9 +102,10 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
     # ---------------------------------------------------------------------------------------------------------------- #
     def _init_docks(self):
         # Add hidden docks here
+        self.docks['placement_editor'] = kui.PlacementEditor(self.scene, parent=self)
 
         for dock in self.docks:
-            self.docks[dock].show()
+            self.docks[dock].hide()
             self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks[dock], qc.Qt.Horizontal)
 
         # Add docks to show initially on startup
@@ -187,7 +188,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         win_action_module_outliner.triggered.connect(partial(self._show_dock, 'module_outliner'))
         win_action_avail_modules.triggered.connect(partial(self._show_dock, 'available_modules'))
         win_action_parent_editor.triggered.connect(self.display_in_dev_message)
-        win_action_placement_systems.triggered.connect(self.display_in_dev_message)
+        win_action_placement_systems.triggered.connect(partial(self._show_dock, 'placement_editor'))
         win_action_space_editor.triggered.connect(self.display_in_dev_message)
         win_action_global_settings.triggered.connect(self.display_in_dev_message)
         # Add Actions
