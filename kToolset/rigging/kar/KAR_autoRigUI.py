@@ -137,6 +137,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         # Make menus tear-able
         file_menu.setTearOffEnabled(True)
         edit_menu.setTearOffEnabled(True)
+        edit_submenu_placement = edit_menu.addMenu('Placement Systems')
         windows_menu.setTearOffEnabled(True)
         help_menu.setTearOffEnabled(True)
 
@@ -174,6 +175,42 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         file_menu.addAction(file_action_import_preset)
         file_menu.addSeparator()
         file_menu.addAction(file_action_exit)
+
+        # EDIT MENU -----------------------------------------------------------------#
+        edit_menu.setFixedWidth(215)
+        # Actions
+        edit_action_placement_create_all = qg.QAction('Create All', self)
+        edit_action_placement_delete_all = qg.QAction('Delete All', self)
+        edit_action_placement_create_sel = qg.QAction('Create Selected', self)
+        edit_action_placement_delete_sel = qg.QAction('Delete Selected', self)
+        edit_action_placement_reset_all = qg.QAction('Reset All', self)
+        edit_action_placement_reset_sel = qg.QAction('Reset Selected', self)
+        edit_action_placement_toggle_geo = qg.QAction('Toggle Geometry', self)
+
+        # Functionality
+        edit_action_placement_create_all.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_delete_all.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_create_sel.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_delete_sel.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_reset_all.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_reset_sel.triggered.connect(self.display_in_dev_message)
+        edit_action_placement_toggle_geo.triggered.connect(self.display_in_dev_message)
+
+        # Add Actions
+        edit_sep01 = edit_submenu_placement.addSeparator()
+        edit_sep01.setText('All')
+        edit_submenu_placement.addAction(edit_action_placement_create_all)
+        edit_submenu_placement.addAction(edit_action_placement_delete_all)
+        edit_sep02 = edit_submenu_placement.addSeparator()
+        edit_sep02.setText('Selected')
+        edit_submenu_placement.addAction(edit_action_placement_create_sel)
+        edit_submenu_placement.addAction(edit_action_placement_delete_sel)
+        edit_sep03 = edit_submenu_placement.addSeparator()
+        edit_sep03.setText('Reset')
+        edit_submenu_placement.addAction(edit_action_placement_reset_all)
+        edit_submenu_placement.addAction(edit_action_placement_reset_sel)
+        edit_sep04 = edit_submenu_placement.addSeparator()
+        edit_submenu_placement.addAction(edit_action_placement_toggle_geo)
 
         # WINDOWS MENU --------------------------------------------------------------#
         windows_menu.setFixedWidth(215)

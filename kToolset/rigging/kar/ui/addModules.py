@@ -25,7 +25,7 @@ class AvailableModules(qg.QDockWidget):
                modules.JointModule]
 
     def __init__(self, scene, parent=None):
-        super(AvailableModules, self).__init__('Available Modules', parent=parent)
+        super(AvailableModules, self).__init__('Add Modules', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
         self.setMinimumWidth(175)
@@ -42,21 +42,15 @@ class AvailableModules(qg.QDockWidget):
         self.module_list = widgets.ListWidget(parent=self, drop_enabled=False)
         self.module_list.list_widget.setObjectName('AvailableModulesList')
 
-        add_button_upper = qg.QPushButton('Add')
         main_label_upper = qg.QLabel('Available Modules')
         main_label_upper.setAlignment(qc.Qt.AlignHCenter | qc.Qt.AlignVCenter)
 
         add_button_lower = qg.QPushButton('Add')
-        main_label_lower = qg.QLabel('Available Modules')
-        main_label_lower.setAlignment(qc.Qt.AlignHCenter | qc.Qt.AlignVCenter)
 
-        self.content_widget.layout().addWidget(add_button_upper)
-        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(4, 4))
         self.content_widget.layout().addWidget(main_label_upper)
-        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
+        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(10, 10))
         self.content_widget.layout().addWidget(self.module_list)
-        self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
-        self.content_widget.layout().addWidget(main_label_lower)
         self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
         self.content_widget.layout().addWidget(add_button_lower)
 
@@ -80,31 +74,6 @@ class AvailableModules(qg.QDockWidget):
             _module = m()
             self.scene.add_module(_module, trigger_update=False)
 
-        self.scene.force_update()
-
-    def drag_add(self, event_args):
-        """
-        Adds dragged items into the scene.
-
-        :param event_args: _ListItem from self.module_list that was dragged to the outliner
-        """
-        dropped_item, target_item, parent_item = event_args
-
-        selected_modules = self.module_list.get_selected_items()
-
-        # Checks to see if the dragged item was in the current selection.
-        # If it is, all selected items are added to the outliner
-        # If the dragged item was NOT part of the selection, then only the dragged item is added
-        if dropped_item in selected_modules:
-            for m in selected_modules:
-                _module = m.data()
-                self.scene.add_module(_module, trigger_update=False)
-        else:
-            _module = dropped_item.data()
-            self.scene.add_module(_module, trigger_update=False)
-
-        # Forces the scene to send out an update signal, causing the outliner to add the new items
-        # to its list
         self.scene.force_update()
 
 

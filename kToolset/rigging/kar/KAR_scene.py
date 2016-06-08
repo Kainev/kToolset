@@ -13,14 +13,6 @@ class Scene(qc.QObject):
 
     scene_updated = qc.Signal()
 
-    # AVAILABLE MODULES
-    MODULES = [modules.ArmModule,
-               modules.HandModule,
-               modules.SpineModule,
-               modules.LegModule,
-               modules.FootModule,
-               modules.JointModule]
-
     def __init__(self):
         super(Scene, self).__init__()
         # Stores all currently added modules, using their UUID as the dictionary key
