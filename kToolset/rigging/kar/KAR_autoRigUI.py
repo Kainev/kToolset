@@ -87,12 +87,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
         # Docks
         self.docks = {}
-        self._init_docks()d s
-s```` b dddddddddddddddd                y
-
-
-ad
-
+        self._init_docks()
 
         # Main Tabs
         tab_widget = kui.widgets.TabWidget(parent=self)
