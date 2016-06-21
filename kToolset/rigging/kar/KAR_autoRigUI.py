@@ -79,6 +79,7 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         self.setObjectName(self.__class__.TOOL_NAME)
         self.setWindowFlags(qc.Qt.WindowStaysOnTopHint)
         self.setDockOptions(qg.QMainWindow.AnimatedDocks | qg.QMainWindow.AllowNestedDocks |
+                            qg.QMainWindow.AllowTabbedDocks | qg.QMainWindow.VerticalTabs)
         self.resize(920, 500)
 
         self.setWindowTitle('kAutoRigger')
@@ -88,6 +89,9 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         # Docks
         self.docks = {}
         self._init_docks()
+
+        # Initialize the main window's menu bar
+        self._init_menu_bar()
 
         # Main Tabs
         tab_widget = kui.widgets.TabWidget(parent=self)
