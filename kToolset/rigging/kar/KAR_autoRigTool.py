@@ -1,10 +1,36 @@
 class KAutoRigger(object):
-    def __init__(self, scene):
-        self.scene = scene
-
-        self.activeModules = {}
-        self.inactiveModules = {}
+    def __init__(self):
+        self.modules = {}
         self.placement_systems = {}
+
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # INTERFACE FUNCTIONS
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def add_module(self, scene_module, trigger_update=True):
+        """
+        Adds a given module to the scene
+
+        :param scene_module: Module instance to add to scene
+        :param trigger_update
+        """
+        self.modules[scene_module.uuid] = scene_module
+
+    def delete_module(self, identifiers, trigger_update=True):
+        """
+        Deletes a list of rig modules identified by their UUID.
+
+        This removes all Maya component as forces a UI update.
+        """
+        if not isinstance(identifiers, list):
+            identifiers = [identifiers]
+
+        for _id in identifiers:
+            try:
+                del self.modules[_id]
+            except KeyError:
+                pass
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #

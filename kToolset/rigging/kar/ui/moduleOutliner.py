@@ -13,15 +13,16 @@ class ModuleOutliner(qg.QDockWidget):
     and that allows you to select a module to edit.
     """
 
-    def __init__(self, scene, main_ui, parent=None):
+    def __init__(self, tool, parent=None):
         super(ModuleOutliner, self).__init__('Module Outliner', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
         self.setMinimumWidth(175)
 
         # Rig Scene
-        self.scene = scene
-        self.add_modules_dock = main_ui.docks['available_modules']
+        self.tool = tool
+        self.main_ui = parent
+        self.add_modules_dock = self.main_ui.docks['available_modules']
 
         # Content Widget ------------------------------------------------ #
         self.content_widget = qg.QWidget()
@@ -37,7 +38,7 @@ class ModuleOutliner(qg.QDockWidget):
         self.content_widget.layout().addWidget(self.module_list)
 
         # Connect Signals ----------------------------------------------- #
-        self.scene.scene_updated.connect(self.update_outliner)
+        self.main_ui.update_signal.connect(self.update_outliner)
         self.module_list.drag_add.connect(self.dropped_from_add_modules)
 
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -78,11 +79,11 @@ class ModuleOutliner(qg.QDockWidget):
         deletes the list items then removes the corresponding modules from the rig scene
         """
         # Get the UUIDs for each module being deleted
-        removed_data = self.module_list.get_selected_data(hierarchy=True)
+        removed_data = [_module.uuid for _module in self.module_list.get_selected_data(hierarchy=True)]
         # Remove the items from the outliner list
         self.module_list.remove_selected()
         # Remove the items from the scene
-        self.scene.delete_modules(removed_data, trigger_update=False)
+        self.tool.delete_module(removed_data, trigger_update=False)
 
     def delete_all(self):
         """
@@ -98,7 +99,7 @@ class ModuleOutliner(qg.QDockWidget):
         # Remove the items from the outliner list
         self.module_list.remove_all()
         # Remove the items from the scene
-        self.scene.delete_modules(removed_data, trigger_update=False)
+        self.tool.delete_modules(removed_data, trigger_update=False)
 
     def dropped_from_add_modules(self, event_args):
         """
@@ -119,14 +120,14 @@ class ModuleOutliner(qg.QDockWidget):
             if target_item is None:
                 # If item is to be parented to the world, simply add it to the scene and let the automatic
                 # updating add it to list
-                self.scene.add_module(_m, trigger_update=False)
+                self.tool.add_module(_m, trigger_update=False)
             else:
                 # Else if its been dropped onto a particular item manually add it to the list,
                 # set its parent and move it into the correct position
-                item = self.module_list.add_item(_m.name, _m.icon, _m.uuid)
+                item = self.module_list.add_item(_m.name, _m.icon, _m)
                 item.parent_item = parent_item
                 self.module_list.move_item_under(item, target_item)
-                self.scene.add_module(_m, trigger_update=False)
+                self.tool.add_module(_m, trigger_update=False)
                 item.update()
 
         # Checks to see if the dragged item was in the current selection.
@@ -134,16 +135,16 @@ class ModuleOutliner(qg.QDockWidget):
         # If the dragged item was NOT part of the selection, then only the dragged item is added
         if dropped_item in selected_modules:
             for j in selected_modules:
-                _module = j.data()
+                _module = j.data()  # Class is stored in data attribute. This creates an instance of that class
                 add_module(_module)
 
         else:
             _module = dropped_item.data()
             add_module(_module)
 
-        # Forces the scene to send out an update signal, causing the outliner to add the new items
+        # Forces the main UI to send out an update signal, causing the outliner to add the new items
         # to its list
-        self.scene.force_update()
+        self.main_ui.emit_update()
 
     def update_outliner(self):
         """
@@ -151,18 +152,21 @@ class ModuleOutliner(qg.QDockWidget):
 
         Scene Module not in outliner: Adds new list item corresponding to module
         Item in list with no match in module list: Deletes list item
-        Item parent does not match modules parent: Reparents list item to correct item
+        Item parent does not match modules parent: Re-parents list item to correct item
         :return:
         """
-        module_list_data = self.module_list.get_all_data()
-        scene_modules = self.scene.get_all_modules()
+        outliner_list_data = self.module_list.get_all_data()
 
-        for _module in scene_modules:
-            val = next((x for x in module_list_data if x == scene_modules[_module].uuid), None)
+        for list_item in self.module_list.items:
+            if list_item.data not in self.tool.modules.values():
+                self.module_list.remove_item(list_item)
 
-            if val is None:
-                self.module_list.add_item(scene_modules[_module].name, icon_pixmap=scene_modules[_module].icon,
-                                          data=scene_modules[_module].uuid)
+        for module_id in self.tool.modules:
+            if self.tool.modules[module_id] not in outliner_list_data:
+                self.module_list.add_item(self.tool.modules[module_id].name,
+                                          icon_pixmap=self.tool.modules[module_id].icon,
+                                          data=self.tool.modules[module_id])
+
 
 
 class _ModuleOutlinerList(widgets.ListWidget):

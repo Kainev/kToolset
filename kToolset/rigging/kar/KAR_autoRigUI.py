@@ -12,6 +12,7 @@ import PySide.QtCore as qc
 from shiboken import wrapInstance
 
 # KAR Imports
+import KAR_autoRigTool as kAutoRigTool; reload(kAutoRigTool)
 import KAR_scene; reload(KAR_scene)
 import ui as kui; reload(kui)
 
@@ -20,7 +21,7 @@ import ui as kui; reload(kui)
 # INITIALIZE FUNCTION
 # -------------------------------------------------------------------------------------------------------------------- #
 # -------------------------------------------------------------------------------------------------------------------- #
-MainUI = None
+main_ui = None
 app_running = False
 
 
@@ -31,17 +32,19 @@ def initialize():
     then this function has no effect.
     """
     global app_running
-    global MainUI
+    global main_ui
 
     if not app_running:
         app_running = True
-        MainUI = None
+        main_ui = None
 
-        if MainUI is None:
-            MainUI = KAutoRiggerUI()
-            MainUI.run()
+        if main_ui is None:
+            main_ui = KAutoRiggerUI()
+            main_ui.run()
     else:
-        MainUI.run()
+        main_ui.run()
+        
+    return main_ui
 
 
 # -------------------------------------------------------------------------------------------------------------------- #
@@ -57,6 +60,8 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
     TOOL_NAME = 'kAutoRigger'
 
+    update_signal = qc.Signal()
+
     def __init__(self):
         """
         Sets the KAutoRiggerUI docks main window preferences, establishes the layout and initializes all
@@ -65,6 +70,8 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         self.delete_instances()
         super(self.__class__, self).__init__(parent=self.get_maya_window())
 
+        self.tool = kAutoRigTool.KAutoRigger()
+
         # kAutoRigger Tool
         self.scene = KAR_scene.Scene()
 
@@ -72,7 +79,6 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         self.setObjectName(self.__class__.TOOL_NAME)
         self.setWindowFlags(qc.Qt.WindowStaysOnTopHint)
         self.setDockOptions(qg.QMainWindow.AnimatedDocks | qg.QMainWindow.AllowNestedDocks |
-                            qg.QMainWindow.AllowTabbedDocks | qg.QMainWindow.VerticalTabs)
         self.resize(920, 500)
 
         self.setWindowTitle('kAutoRigger')
@@ -81,10 +87,12 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
 
         # Docks
         self.docks = {}
-        self._init_docks()
+        self._init_docks()d s
+s```` b dddddddddddddddd                y
 
-        # Initialize the main window's menu bar
-        self._init_menu_bar()
+
+ad
+
 
         # Main Tabs
         tab_widget = kui.widgets.TabWidget(parent=self)
@@ -109,8 +117,8 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
             self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks[dock], qc.Qt.Horizontal)
 
         # Add docks to show initially on startup
-        self.docks['available_modules'] = kui.AvailableModules(self.scene, parent=self)
-        self.docks['module_outliner'] = kui.ModuleOutliner(self.scene, main_ui=self, parent=self)
+        self.docks['available_modules'] = kui.AvailableModules(self.tool, parent=self)
+        self.docks['module_outliner'] = kui.ModuleOutliner(self.tool, parent=self)
 
         self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['available_modules'], qc.Qt.Horizontal)
         self.addDockWidget(qc.Qt.LeftDockWidgetArea, self.docks['module_outliner'], qc.Qt.Horizontal)
@@ -259,7 +267,13 @@ class KAutoRiggerUI(MayaQWidgetDockableMixin, qg.QMainWindow):
         help_menu.addAction(help_action_docs)
         help_menu.addAction(help_action_website)
 
-
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # Interface Functions
+    # ---------------------------------------------------------------------------------------------------------------- #
+    # ---------------------------------------------------------------------------------------------------------------- #
+    def emit_update(self):
+        self.update_signal.emit()
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
     # OPEN/CLOSE FUNCTIONS FOR UI

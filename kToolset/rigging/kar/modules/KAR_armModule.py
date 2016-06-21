@@ -19,11 +19,16 @@ class ArmPlacementSystem(object):
     to place to determine the joint positioning of the final arm rig
     """
     def __init__(self):
-        pass
+        self.geometry = []
+        self.joints = []
+        self.controls = {}
+
+    def create_geometry(self):
+
 
     def show_geometry(self, val):
         """
-        showGeometry accepts a boolean parameter which turns the visibility for all geometry pertaining to the
+        show_geometry accepts a boolean parameter which turns the visibility for all geometry pertaining to the
         individual module on or off
 
         :param val: Accepts a boolean parameter. If True, all geometry will be visible.
