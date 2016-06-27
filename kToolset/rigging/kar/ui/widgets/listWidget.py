@@ -40,7 +40,7 @@ class ListWidget(qg.QWidget):
         self._multi_select = True
         self._item_display_state = 0  # 0 = No Icons, 1 = Small Icons, 2 = Large Icons
 
-        self._items = []
+        self.items = []
         self._selected_items = []
 
         # Master Widget Layout
@@ -91,7 +91,7 @@ class ListWidget(qg.QWidget):
         """
         item = _ItemWidget(label, icon_pixmap, data, parent=self, drag_enabled=self.drag_enabled, drop_enabled=self.drop_enabled)
         self.list_widget.layout().addWidget(item)
-        self._items.append(item)
+        self.items.append(item)
 
         # Listen for drop events
         item.received_drop.connect(partial(self.drop_event, item))
@@ -196,7 +196,7 @@ class ListWidget(qg.QWidget):
                 if selected_item is not None:
                     self._selected_items.append(selected_item)
 
-        for item in self._items:
+        for item in self.items:
             if item not in self._selected_items:
                 item.selected = False
             elif item in self._selected_items:
@@ -225,22 +225,40 @@ class ListWidget(qg.QWidget):
 
         # Delete items
         for item in deletion_items:
-            del self._items[self._items.index(item)]
+            del self.items[self.items.index(item)]
             self.list_widget.layout().removeWidget(item)
             item.deleteLater()
 
         # Make sure selection is cleared
         self._selection_updated(None)
 
+    def remove_item(self, list_item):
+        deletion_items = []
+
+        # Mark items for deletion and
+        if list_item not in deletion_items:
+            deletion_items.append(list_item)
+
+            # Delete children of selected item
+            for item in self.get_children(list_item):
+                if item not in deletion_items:
+                    deletion_items.append(item)
+
+                # Delete items
+        for item in deletion_items:
+            del self.items[self.items.index(item)]
+            self.list_widget.layout().removeWidget(item)
+            item.deleteLater()
+
     def remove_all(self):
         """
         Removes all items from the list
         """
-        for item in self._items:
+        for item in self.items:
             self.list_widget.layout().removeWidget(item)
             item.deleteLater()
 
-        self._items[:] = []
+        self.items[:] = []
         self._selection_updated(None)
 
     def rename_selected(self, text):
@@ -263,7 +281,7 @@ class ListWidget(qg.QWidget):
         for event_item in event_items:
             event_item.parent_item = None
             event_item.update()
-            self.move_item_under(event_item, self.get_display_order(self._items)[-1])
+            self.move_item_under(event_item, self.get_display_order(self.items)[-1])
 
     def drop_event(self, target_item, event_args):
         """
@@ -291,7 +309,7 @@ class ListWidget(qg.QWidget):
         if target_item == self._world_item:
             dropped_item.parent_item = None
             dropped_item.update()
-            self.move_item_under(dropped_item, self.get_display_order(self._items)[-1])
+            self.move_item_under(dropped_item, self.get_display_order(self.items)[-1])
             return
 
         # Determines which items the event should apply to in case the user is dragging a selection
@@ -355,7 +373,7 @@ class ListWidget(qg.QWidget):
 
         The list is returned in the order in which the items are display
         """
-        return [item.data for item in self.get_display_order(self._items)]
+        return [item.data for item in self.get_display_order(self.items)]
 
     def get_selected_items(self, hierarchy=False):
         """
@@ -386,7 +404,7 @@ class ListWidget(qg.QWidget):
         """
         Returns a list containing all current list items, ordered as they appear in the outliner (top to bottom)
         """
-        return self.get_display_order(self._items)
+        return self.get_display_order(self.items)
 
     # ---------------------------------------------------------------------------------------------------------------- #
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -404,7 +422,7 @@ class ListWidget(qg.QWidget):
         :param state: Int: 0 = No Icon, 1 = Small Icon, 2 = Large Icon
         """
         if 0 <= state <= 2:
-            for item in self._items:
+            for item in self.items:
                 item.set_icon_state(state)
 
     # ---------------------------------------------------------------------------------------------------------------- #
@@ -428,7 +446,7 @@ class ListWidget(qg.QWidget):
 
             :param parent: _ListItem of parent to find children/grandchildren for
             """
-            for item in self._items:
+            for item in self.items:
                 if item.parent_item == parent:
                     children.append(item)
                     recursive_search(item)
@@ -454,7 +472,7 @@ class ListWidget(qg.QWidget):
             items.sort(items, key=lambda item: self.list_widget.layout().indexOf(item), reverse=reverse)
 
     def _generate_unique_name(self, text):
-        list_names = [item.text for item in self._items]
+        list_names = [item.text for item in self.items]
 
         try:
             unique_mod = str(max([int(re.findall(r'\d+$', t)[0]) for t in list_names

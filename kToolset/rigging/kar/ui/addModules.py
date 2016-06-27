@@ -24,13 +24,14 @@ class AvailableModules(qg.QDockWidget):
                modules.FootModule,
                modules.JointModule]
 
-    def __init__(self, scene, parent=None):
+    def __init__(self, tool, parent=None):
         super(AvailableModules, self).__init__('Add Modules', parent=parent)
         self.setFloating(False)
         self.setAllowedAreas(qc.Qt.LeftDockWidgetArea | qc.Qt.RightDockWidgetArea)
         self.setMinimumWidth(175)
 
-        self.scene = scene
+        self.tool = tool
+        self.main_ui = parent
 
         self.content_widget = qg.QWidget()
         self.content_widget.setLayout(qg.QVBoxLayout())
@@ -54,7 +55,7 @@ class AvailableModules(qg.QDockWidget):
         self.content_widget.layout().addSpacerItem(qg.QSpacerItem(5, 5))
         self.content_widget.layout().addWidget(add_button_lower)
 
-        add_button_lower.clicked.connect(self._add_selected)
+        add_button_lower.clicked.connect(self.add_selected)
 
         self._add_list_items()
 
@@ -65,15 +66,15 @@ class AvailableModules(qg.QDockWidget):
         for module in self.MODULES:
             self.module_list.add_item(module.__name__, module.icon, data=module)
 
-    def _add_selected(self):
+    def add_selected(self):
         """
         Adds currently selected modules to the scene and forces an update
         """
         _modules = self.module_list.get_selected_data()
         for m in _modules:
             _module = m()
-            self.scene.add_module(_module, trigger_update=False)
+            self.tool.add_module(_module, trigger_update=False)
 
-        self.scene.force_update()
+        self.main_ui.emit_update()
 
 

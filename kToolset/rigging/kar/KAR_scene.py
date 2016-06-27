@@ -1,10 +1,5 @@
-
 import PySide.QtCore as qc
-# KAR Imports
-import modules.module; reload(modules.module)
-from modules.module import Module
 
-import modules; reload(modules)
 
 class Scene(qc.QObject):
     """
@@ -36,9 +31,9 @@ class Scene(qc.QObject):
 
         This removes all Maya component as forces a UI update.
         """
-        for id in identifiers:
+        for _id in identifiers:
             try:
-                del self._modules[id]
+                del self._modules[_id]
             except KeyError:
                 pass
 
